@@ -81,33 +81,19 @@ cd apps/web-public && tsc --noEmit
 
 ---
 
-## Production Deploy (VPS)
+## Production Deploy
 
-### First deploy — SSL setup
-```bash
-# 1. Point DNS records to VPS IP:
-#    maku.trendscore.co.ke
-#    app.maku.trendscore.co.ke
-#    api.maku.trendscore.co.ke
-#    files.maku.trendscore.co.ke
+Pushes to `main` build the web bundles and API image in GitHub Actions, then
+transfer them over the existing passwordless SSH deployment key. On the first
+server deployment, MAKU generates protected database, Redis, MinIO, and JWT
+secrets, initializes the empty database schema once, and requests a Let's
+Encrypt certificate for `maku.trendscore.co.ke` and
+`app.maku.trendscore.co.ke`. The existing host Nginx serves both sites and
+proxies `/v1` to the API.
 
-# 2. Copy .env files and fill in production values
-cp apps/api/.env.example apps/api/.env.production
-
-# 3. Start containers
-docker compose -f docker-compose.prod.yml up -d
-
-# 4. Issue SSL certificates
-chmod +x infra/scripts/init-letsencrypt.sh
-./infra/scripts/init-letsencrypt.sh
-```
-
-### Subsequent deploys
-```bash
-chmod +x infra/scripts/deploy.sh
-./infra/scripts/deploy.sh          # standard deploy
-./infra/scripts/deploy.sh --build  # force image rebuild
-```
+The GitHub repository needs Actions secrets `DEPLOY_HOST`, `DEPLOY_USER`, and
+`DEPLOY_SSH_KEY`. Production `.env` files stay on the server and are excluded
+from source sync.
 
 ### Automated backups (add to cron on VPS)
 ```bash

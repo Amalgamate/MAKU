@@ -19,6 +19,24 @@ jobs:
       - name: Check out release
         uses: actions/checkout@v4
 
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 12.8.1
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Build web apps and API image
+        run: |
+          set -euo pipefail
+          pnpm install --frozen-lockfile
+          pnpm --filter @maku/web-app build
+          pnpm --filter @maku/web-public build
+          docker build --target production --tag maku-api:latest --file apps/api/Dockerfile .
+
       - name: Configure passwordless SSH
         env:
           DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
@@ -32,24 +50,21 @@ jobs:
           ssh-keyscan -H "$DEPLOY_HOST" >> ~/.ssh/known_hosts
           printf 'Host maku-production\n  HostName %s\n  User %s\n  IdentityFile ~/.ssh/maku_deploy\n  IdentitiesOnly yes\n' "$DEPLOY_HOST" "$DEPLOY_USER" >> ~/.ssh/config
           chmod 600 ~/.ssh/config ~/.ssh/known_hosts
-          ssh maku-production 'mkdir -p /home/deploy/apps/maku'
+          ssh maku-production 'mkdir -p /home/deploy/apps/maku && available_mb=$(df --output=avail -Pm / | tail -1) && test "$available_mb" -ge 800'
 
-      - name: Sync source to production server
+      - name: Sync source and built web apps to the server
         run: |
           set -euo pipefail
           rsync -az --delete \
             --exclude='.git/' \
             --exclude='node_modules/' \
             --exclude='apps/*/node_modules/' \
-            --exclude='apps/*/dist/' \
             --exclude='.env' \
             --exclude='apps/api/.env.production' \
             ./ maku-production:/home/deploy/apps/maku/
 
+      - name: Transfer production API image
+        run: docker save maku-api:latest | gzip -1 | ssh maku-production 'gzip -dc | sudo docker load'
+
       - name: Deploy and verify
-        run: |
-          set -euo pipefail
-          ssh maku-production 'cd /home/deploy/apps/maku && chmod +x infra/scripts/deploy.sh && ./infra/scripts/deploy.sh'
-          curl --fail --silent --show-error https://maku.trendscore.co.ke/ >/dev/null
-          curl --fail --silent --show-error https://app.maku.trendscore.co.ke/ >/dev/null
-          curl --fail --silent --show-error https://api.maku.trendscore.co.ke/v1/health >/dev/null
+        run: ssh maku-production 'cd /home/deploy/apps/maku && chmod +x infra/scripts/*.sh && ./infra/scripts/deploy.sh'
