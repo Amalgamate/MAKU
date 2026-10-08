@@ -1,0 +1,18 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "jsx": "react-jsx",
+    "baseUrl": ".",
+    "typeRoots": [
+      "../../apps/web-app/node_modules/@types",
+      "../../node_modules/.pnpm/@types+react@18.3.18/node_modules/@types"
+    ],
+    "paths": {
+      "@maku/utils": ["../utils/src/index.ts"]
+    }
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules"]
+}

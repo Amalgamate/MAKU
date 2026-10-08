@@ -1,0 +1,55 @@
+name: Deploy MAKU
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: maku-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out release
+        uses: actions/checkout@v4
+
+      - name: Configure passwordless SSH
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+        run: |
+          set -euo pipefail
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/maku_deploy
+          chmod 600 ~/.ssh/maku_deploy
+          ssh-keyscan -H "$DEPLOY_HOST" >> ~/.ssh/known_hosts
+          printf 'Host maku-production\n  HostName %s\n  User %s\n  IdentityFile ~/.ssh/maku_deploy\n  IdentitiesOnly yes\n' "$DEPLOY_HOST" "$DEPLOY_USER" >> ~/.ssh/config
+          chmod 600 ~/.ssh/config ~/.ssh/known_hosts
+          ssh maku-production 'mkdir -p /srv/maku'
+
+      - name: Sync source to production server
+        run: |
+          set -euo pipefail
+          rsync -az --delete \
+            --exclude='.git/' \
+            --exclude='node_modules/' \
+            --exclude='apps/*/node_modules/' \
+            --exclude='apps/*/dist/' \
+            --exclude='.env' \
+            --exclude='apps/api/.env.production' \
+            ./ maku-production:/srv/maku/
+
+      - name: Deploy and verify
+        run: |
+          set -euo pipefail
+          ssh maku-production 'cd /srv/maku && chmod +x infra/scripts/deploy.sh && ./infra/scripts/deploy.sh'
+          curl --fail --silent --show-error https://maku.trendscore.co.ke/ >/dev/null
+          curl --fail --silent --show-error https://app.maku.trendscore.co.ke/ >/dev/null
+          curl --fail --silent --show-error https://api.maku.trendscore.co.ke/v1/health >/dev/null

@@ -1,0 +1,15 @@
+packages:
+  - "apps/*"
+  - "packages/*"
+
+# Allow build scripts for native packages (pnpm 11+)
+allowBuilds:
+  "@nestjs/core": true
+  '@swc/core': true
+  "bcrypt": true
+  "esbuild": true
+
+# Hoist all packages to root node_modules so shared TypeScript
+# source in packages/* can resolve types from consuming apps
+hoist: true
+hoistWorkspacePackages: true

@@ -1,0 +1,30 @@
+{
+  "name": "maku-platform",
+  "version": "0.1.0",
+  "private": true,
+  "description": "MAKU Digital Cooperative Platform — monorepo",
+  "scripts": {
+    "dev": "concurrently --names \"API,APP,WEB\" --prefix-colors \"green,blue,cyan\" \"pnpm dev:api\" \"pnpm dev:app\" \"pnpm dev:public\"",
+    "start": "pnpm dev",
+    "dev:api": "pnpm --filter @maku/api dev",
+    "dev:app": "pnpm --filter @maku/web-app dev",
+    "dev:public": "pnpm --filter @maku/web-public dev",
+    "build:api": "pnpm --filter @maku/api build",
+    "build:app": "pnpm --filter @maku/web-app build",
+    "build:public": "pnpm --filter @maku/web-public build",
+    "build:all": "pnpm run build:api && pnpm run build:app && pnpm run build:public",
+    "lint": "pnpm --recursive lint",
+    "typecheck:api": "cd apps/api && tsc --noEmit",
+    "typecheck:app": "cd apps/web-app && tsc --noEmit",
+    "typecheck:public": "cd apps/web-public && tsc --noEmit",
+    "test": "pnpm --recursive test"
+  },
+  "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "8.26.0",
+    "@typescript-eslint/parser": "8.26.0",
+    "concurrently": "9.1.2",
+    "eslint": "9.21.0",
+    "prettier": "3.5.3",
+    "typescript": "5.8.2"
+  }
+}
