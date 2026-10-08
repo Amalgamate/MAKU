@@ -40,7 +40,8 @@ export function PublicLayout() {
 
   // Site name + logo from CMS (fallback to static)
   const siteName = settings?.siteName ?? 'MAKU';
-  const logoUrl = settings?.logoUrl;
+  const headerLogoUrl = settings?.headerLogoUrl ?? settings?.logoUrl;
+  const footerLogoUrl = settings?.footerLogoUrl ?? settings?.logoUrl;
 
   function NavItems({ onClick }: { onClick?: () => void }) {
     return (
@@ -87,8 +88,8 @@ export function PublicLayout() {
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6">
           {/* Logo */}
           <Link to="/" className="flex items-center gap-2" aria-label={`${siteName} home`}>
-            {logoUrl ? (
-              <img src={logoUrl} alt={siteName} className="h-8 w-auto object-contain" />
+            {headerLogoUrl ? (
+              <img src={headerLogoUrl} alt={siteName} className="h-8 w-auto object-contain" />
             ) : (
               <>
                 <Sprout size={28} className="text-brand-700" />
@@ -162,8 +163,8 @@ export function PublicLayout() {
         <div className="mx-auto max-w-7xl px-4 sm:px-6">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-2">
-              {logoUrl ? (
-                <img src={logoUrl} alt={siteName} className="h-6 w-auto object-contain" />
+              {footerLogoUrl ? (
+                <img src={footerLogoUrl} alt={siteName} className="h-6 w-auto object-contain" />
               ) : (
                 <>
                   <Sprout size={20} className="text-brand-700" />

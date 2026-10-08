@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import {
   Globe, Plus, Save, Eye, Upload, X, Settings2,
@@ -12,7 +12,7 @@ import {
   type WebsitePageData, type BlockData,
 } from '../hooks/useWebsite';
 import { BlockCard, BLOCK_CATALOGUE } from '../components/BlockEditor';
-import { useOrgStore } from '../../settings/store/org.store';
+import { apiClient } from '../../../shared/services/api.client';
 
 type View = 'pages' | 'editor' | 'settings';
 
@@ -112,16 +112,95 @@ function BlockPicker({ onPick, onClose }: { onPick: (b: BlockData) => void; onCl
 
 // ─── Global settings panel ────────────────────────────────────────────────────
 
+function WebsiteLogoUpload({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: string | null;
+  onChange: (url: string | null) => void;
+}) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function upload(file?: File) {
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      setError('Choose an image file.');
+      return;
+    }
+    if (file.size > 4 * 1024 * 1024) {
+      setError('Image must be 4 MB or smaller.');
+      return;
+    }
+
+    setError(null);
+    setUploading(true);
+    const formData = new FormData();
+    formData.append('file', file);
+    try {
+      const response = await apiClient.post<{ data: { url: string } }>('/upload/image', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      onChange(response.data.data.url);
+    } catch {
+      setError('Upload failed. Check your connection and try again.');
+    } finally {
+      setUploading(false);
+      if (inputRef.current) inputRef.current.value = '';
+    }
+  }
+
+  return (
+    <div className="rounded-lg border border-gray-200 p-4">
+      <p className="text-sm font-medium text-gray-700">{label}</p>
+      <p className="mt-1 text-xs text-gray-500">PNG, JPG, WebP, or SVG · max 4 MB</p>
+      <div className="mt-3 flex flex-wrap items-center gap-3">
+        <div className="flex h-16 min-w-24 max-w-48 items-center justify-center rounded border border-dashed border-gray-300 bg-gray-50 p-2">
+          {value ? <img src={value} alt={`${label} preview`} className="max-h-full max-w-full object-contain" /> : <span className="text-xs text-gray-400">No logo selected</span>}
+        </div>
+        <input
+          ref={inputRef}
+          type="file"
+          accept="image/*"
+          className="sr-only"
+          aria-label={`Upload ${label.toLowerCase()}`}
+          onChange={(event) => void upload(event.target.files?.[0])}
+        />
+        <Button variant="secondary" size="sm" loading={uploading} onClick={() => inputRef.current?.click()}>
+          <Upload size={14} /> {value ? 'Replace image' : 'Upload image'}
+        </Button>
+        {value && (
+          <Button variant="ghost" size="sm" onClick={() => { onChange(null); setError(null); }}>
+            <X size={14} /> Remove
+          </Button>
+        )}
+      </div>
+      {error && <p role="alert" className="mt-2 text-xs text-red-600">{error}</p>}
+    </div>
+  );
+}
+
 function GlobalSettings({ settings }: { settings: NonNullable<ReturnType<typeof useWebsiteSettings>['data']> }) {
   const updateMutation = useUpdateWebsiteSettings();
-  const org = useOrgStore();
   const [siteName, setSiteName] = useState(settings.siteName);
   const [tagline, setTagline] = useState(settings.tagline ?? '');
   const [footerText, setFooterText] = useState(settings.footerText ?? '');
   const [primaryColor, setPrimaryColor] = useState(settings.primaryColor);
+  const [headerLogoUrl, setHeaderLogoUrl] = useState(settings.headerLogoUrl ?? settings.logoUrl);
+  const [footerLogoUrl, setFooterLogoUrl] = useState(settings.footerLogoUrl ?? settings.logoUrl);
 
   function save() {
-    updateMutation.mutate({ siteName, tagline, footerText, primaryColor, logoUrl: org.logoUrl });
+    updateMutation.mutate({
+      siteName,
+      tagline,
+      footerText,
+      primaryColor,
+      headerLogoUrl: headerLogoUrl ?? '',
+      footerLogoUrl: footerLogoUrl ?? '',
+    });
   }
 
   return (
@@ -139,22 +218,8 @@ function GlobalSettings({ settings }: { settings: NonNullable<ReturnType<typeof 
             <input value={tagline} onChange={(e) => setTagline(e.target.value)}
               className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-600 focus:outline-none" />
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Logo</label>
-            {org.logoUrl ? (
-              <div className="flex items-center gap-3 p-3 rounded-lg bg-gray-50 border border-gray-200">
-                <img src={org.logoUrl} alt="Logo" className="h-10 object-contain" />
-                <div>
-                  <p className="text-xs font-medium text-gray-700">Logo from Settings</p>
-                  <p className="text-[11px] text-gray-400">Upload or change in Settings → System Configuration</p>
-                </div>
-              </div>
-            ) : (
-              <p className="text-sm text-amber-600 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
-                No logo uploaded yet. Go to <strong>Settings → System Configuration</strong> to upload your logo.
-              </p>
-            )}
-          </div>
+          <WebsiteLogoUpload label="Header logo" value={headerLogoUrl} onChange={setHeaderLogoUrl} />
+          <WebsiteLogoUpload label="Footer logo" value={footerLogoUrl} onChange={setFooterLogoUrl} />
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Brand colour</label>
             <div className="flex items-center gap-3">

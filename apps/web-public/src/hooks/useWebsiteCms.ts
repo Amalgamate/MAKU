@@ -1,12 +1,13 @@
 import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
 
-const API = import.meta.env['VITE_API_URL'] ?? 'http://localhost:3000/v1';
+const API = import.meta.env['VITE_API_URL'] ?? '/v1';
 
 export interface CmsBlock { type: string; [key: string]: unknown; }
 export interface CmsPage { id: string; title: string; slug: string; isHomePage: boolean; isInNav: boolean; blocks: CmsBlock[]; seoTitle?: string; seoDescription?: string; }
 export interface CmsSettings {
   id: string; siteName: string; tagline: string | null; logoUrl: string | null;
+  headerLogoUrl: string | null; footerLogoUrl: string | null;
   primaryColor: string; navLinks: Array<{ label: string; url: string }>;
   pages: CmsPage[]; footerText: string | null;
   socialLinks: { facebook?: string; twitter?: string; whatsapp?: string };

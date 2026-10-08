@@ -15,6 +15,10 @@ export default defineConfig({
   server: {
     port: 4000,
     host: '127.0.0.1',
+    proxy: {
+      '/v1': { target: 'http://localhost:3000', changeOrigin: true },
+      '/uploads': { target: 'http://localhost:3000', changeOrigin: true },
+    },
   },
   build: {
     // Good for SEO — split chunks

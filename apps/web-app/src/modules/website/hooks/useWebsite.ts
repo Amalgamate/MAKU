@@ -7,6 +7,8 @@ export interface WebsiteSettingsData {
   siteName: string;
   tagline: string | null;
   logoUrl: string | null;
+  headerLogoUrl: string | null;
+  footerLogoUrl: string | null;
   primaryColor: string;
   navLinks: Array<{ label: string; url: string }>;
   pages: WebsitePageData[];

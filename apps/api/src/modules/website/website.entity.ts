@@ -85,6 +85,12 @@ export class WebsiteSettings {
   @Column({ name: 'logo_url', type: 'text', nullable: true })
   logoUrl!: string | null;
 
+  @Column({ name: 'header_logo_url', type: 'text', nullable: true })
+  headerLogoUrl!: string | null;
+
+  @Column({ name: 'footer_logo_url', type: 'text', nullable: true })
+  footerLogoUrl!: string | null;
+
   @Column({ name: 'favicon_url', type: 'text', nullable: true })
   faviconUrl!: string | null;
 
