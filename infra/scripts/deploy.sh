@@ -88,6 +88,8 @@ sudo nginx -t
 sudo systemctl reload nginx
 
 echo '==> Checking production endpoints'
+echo 'Active Nginx MAKU hostname and certificate mappings:'
+sudo nginx -T 2>/dev/null | grep -nE 'server_name .*maku\.trendscore\.co\.ke|ssl_certificate(_key)? '
 for hostname in maku.trendscore.co.ke app.maku.trendscore.co.ke; do
   echo "DNS addresses for ${hostname}:"
   getent ahosts "$hostname" | awk '!seen[$1]++ {print $1}' || true
