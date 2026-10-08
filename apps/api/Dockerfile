@@ -45,7 +45,7 @@ COPY apps/web-app/package.json ./apps/web-app/
 COPY apps/web-public/package.json ./apps/web-public/
 
 # Production deps only
-RUN pnpm install --frozen-lockfile --prod
+RUN pnpm install --frozen-lockfile --prod --filter @maku/api...
 
 COPY --from=builder /app/apps/api/dist ./apps/api/dist
 COPY --from=builder /app/packages ./packages

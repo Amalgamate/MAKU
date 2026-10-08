@@ -86,7 +86,7 @@ cd apps/web-public && tsc --noEmit
 Pushes to `main` build the web bundles and API image in GitHub Actions, then
 transfer them over the existing passwordless SSH deployment key. On the first
 server deployment, MAKU generates protected database, Redis, MinIO, and JWT
-secrets, initializes the empty database schema once, and requests a Let's
+database and JWT secrets, initializes the empty database schema once, and requests a Let's
 Encrypt certificate for `maku.trendscore.co.ke` and
 `app.maku.trendscore.co.ke`. The existing host Nginx serves both sites and
 proxies `/v1` to the API.

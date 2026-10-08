@@ -10,9 +10,6 @@ if [[ ! -f .env ]]; then
 DB_NAME=maku_db
 DB_USER=maku_user
 DB_PASS=$(openssl rand -hex 32)
-REDIS_PASS=$(openssl rand -hex 32)
-MINIO_ROOT_USER=maku_storage
-MINIO_ROOT_PASSWORD=$(openssl rand -hex 32)
 EOF
 fi
 
@@ -21,10 +18,10 @@ set -a
 . ./.env
 set +a
 
-for name in DB_NAME DB_USER DB_PASS REDIS_PASS MINIO_ROOT_USER MINIO_ROOT_PASSWORD; do
+for name in DB_NAME DB_USER DB_PASS; do
   [[ -n "${!name:-}" ]] || { echo "Missing required setting: ${name}" >&2; exit 1; }
 done
-[[ "$DB_PASS" != changeme* && "$REDIS_PASS" != changeme* && "$MINIO_ROOT_PASSWORD" != changeme* ]] || {
+[[ "$DB_PASS" != changeme* ]] || {
   echo 'Replace placeholder production credentials before deployment.' >&2
   exit 1
 }
@@ -47,16 +44,6 @@ JWT_ACCESS_SECRET=$(openssl rand -hex 48)
 JWT_REFRESH_SECRET=$(openssl rand -hex 48)
 JWT_ACCESS_EXPIRES=15m
 JWT_REFRESH_EXPIRES=7d
-REDIS_HOST=redis
-REDIS_PORT=6379
-REDIS_PASS=${REDIS_PASS}
-MINIO_ENDPOINT=minio
-MINIO_PORT=9000
-MINIO_USE_SSL=false
-MINIO_ROOT_USER=${MINIO_ROOT_USER}
-MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}
-MINIO_BUCKET_MEMBERS=maku-members
-MINIO_BUCKET_DOCUMENTS=maku-documents
 EOF
 fi
 chmod 600 .env apps/api/.env.production

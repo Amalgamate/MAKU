@@ -14,16 +14,16 @@ bash infra/scripts/configure-production-env.sh
 "${COMPOSE[@]}" config --quiet
 
 available_mb=$(df -Pm / | awk 'NR==2 {print $4}')
-if (( available_mb < 1800 )); then
-  echo "ERROR: only ${available_mb} MB free; refusing a production build below 1800 MB." >&2
+if (( available_mb < 200 )); then
+  echo "ERROR: only ${available_mb} MB free; refusing deployment below 200 MB." >&2
   exit 1
 fi
 
 echo '==> Building frontend bundles'
 "${COMPOSE[@]}" --profile build run --rm web-build
 
-echo '==> Starting database and storage services'
-"${COMPOSE[@]}" up -d postgres redis minio
+echo '==> Starting database service'
+"${COMPOSE[@]}" up -d postgres
 for attempt in $(seq 1 40); do
   if "${COMPOSE[@]}" exec -T postgres pg_isready -U maku_user -d maku_db >/dev/null 2>&1; then
     break
