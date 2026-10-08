@@ -13,6 +13,13 @@ echo '==> Preparing protected production secrets'
 bash infra/scripts/configure-production-env.sh
 "${COMPOSE[@]}" config --quiet
 
+echo '==> Publishing static files for host Nginx'
+sudo install -d -m 755 /var/www/maku/public /var/www/maku/app
+sudo rsync -a --delete --chown=root:root --chmod=Du=rwx,Dgo=rx,Fu=rw,Fgo=r \
+  apps/web-public/dist/ /var/www/maku/public/
+sudo rsync -a --delete --chown=root:root --chmod=Du=rwx,Dgo=rx,Fu=rw,Fgo=r \
+  apps/web-app/dist/ /var/www/maku/app/
+
 available_mb=$(df -Pm / | awk 'NR==2 {print $4}')
 if (( available_mb < 200 )); then
   echo "ERROR: only ${available_mb} MB free; refusing deployment below 200 MB." >&2
@@ -74,7 +81,7 @@ sudo nginx -t
 sudo systemctl reload nginx
 
 echo '==> Checking production endpoints'
-curl --fail --silent --show-error https://maku.trendscore.co.ke/ >/dev/null
-curl --fail --silent --show-error https://app.maku.trendscore.co.ke/ >/dev/null
-curl --fail --silent --show-error https://maku.trendscore.co.ke/v1/health >/dev/null
+curl --fail --silent --show-error --resolve maku.trendscore.co.ke:443:127.0.0.1 https://maku.trendscore.co.ke/ >/dev/null
+curl --fail --silent --show-error --resolve app.maku.trendscore.co.ke:443:127.0.0.1 https://app.maku.trendscore.co.ke/ >/dev/null
+curl --fail --silent --show-error --resolve maku.trendscore.co.ke:443:127.0.0.1 https://maku.trendscore.co.ke/v1/health >/dev/null
 echo 'MAKU deployment completed successfully.'
