@@ -26,3 +26,12 @@ export function useUpdateSupplier(id: string) {
     onError: () => toast.error('Update failed'),
   });
 }
+
+export function useDeactivateSupplier(id: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () => suppliersService.deactivate(id),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: keys.all }); toast.success('Supplier deactivated'); },
+    onError: () => toast.error('Deactivation failed'),
+  });
+}

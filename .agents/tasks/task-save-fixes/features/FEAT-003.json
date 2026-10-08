@@ -2,7 +2,7 @@
   "id": "FEAT-003",
   "type": "feat",
   "description": "Add missing edit/terminate UI for Staff, edit/deactivate UI for Suppliers, and replace raw UUID text inputs on CIG officer fields with a searchable member picker. All API endpoints already exist — this is purely frontend work. FEAT-003 is independent of FEAT-001 and FEAT-002 and can be implemented in parallel order if needed.",
-  "status": "pending",
+  "status": "completed",
   "steps": [
     "Update apps/web-app/src/modules/staff/services/staff.service.ts: add terminate method — async terminate(id: string, endDate: string): Promise<StaffMember> { const res = await apiClient.patch<ApiResponse<StaffMember>>(`/staff/${id}/terminate`, { endDate }); return res.data.data; }",
 

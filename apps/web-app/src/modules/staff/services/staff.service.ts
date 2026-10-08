@@ -24,4 +24,8 @@ export const staffService = {
     const res = await apiClient.patch<ApiResponse<StaffMember>>(`/staff/${id}`, data);
     return res.data.data;
   },
+  async terminate(id: string, endDate: string): Promise<StaffMember> {
+    const res = await apiClient.patch<ApiResponse<StaffMember>>(`/staff/${id}/terminate`, { endDate });
+    return res.data.data;
+  },
 };

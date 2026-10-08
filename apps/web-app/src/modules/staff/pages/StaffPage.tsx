@@ -2,10 +2,11 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { UserCog, Plus, X, Phone, Mail } from 'lucide-react';
+import { UserCog, Plus, X, Phone, Mail, Edit2 } from 'lucide-react';
 import { Button, Input, Card, Badge, Spinner } from '@maku/ui';
-import { formatDate, formatCurrency } from '@maku/utils';
-import { useStaffList, useCreateStaff } from '../hooks/useStaff';
+import { formatDate } from '@maku/utils';
+import { useStaffList, useCreateStaff, useUpdateStaff, useTerminateStaff } from '../hooks/useStaff';
+import type { StaffMember } from '../services/staff.service';
 
 const schema = z.object({
   fullName: z.string().min(2), role: z.string().min(2),
@@ -19,21 +20,66 @@ const schema = z.object({
 });
 type Form = z.infer<typeof schema>;
 
+const editSchema = z.object({
+  fullName: z.string().min(2),
+  role: z.string().min(2),
+  department: z.string().optional(),
+  phone: z.string().optional(),
+  email: z.string().optional(),
+});
+type EditForm = z.infer<typeof editSchema>;
+
 const STATUS_VARIANT: Record<string, 'green' | 'yellow' | 'gray'> = { active: 'green', on_leave: 'yellow', terminated: 'gray' };
 const EMP_TYPE_LABEL: Record<string, string> = { permanent: 'Permanent', contract: 'Contract', casual: 'Casual' };
 
 export default function StaffPage() {
   const [showForm, setShowForm] = useState(false);
+  const [editingStaff, setEditingStaff] = useState<StaffMember | null>(null);
+  const [confirmTerminate, setConfirmTerminate] = useState(false);
+
   const { data: staff = [], isLoading } = useStaffList();
   const createMutation = useCreateStaff();
+  const updateMutation = useUpdateStaff(editingStaff?.id ?? '');
+  const terminateMutation = useTerminateStaff(editingStaff?.id ?? '');
+
   const { register, handleSubmit, reset, formState: { errors } } = useForm<Form>({
     resolver: zodResolver(schema),
     defaultValues: { hireDate: new Date().toISOString().slice(0, 10), employmentType: 'permanent' },
   });
 
+  const editForm = useForm<EditForm>({ resolver: zodResolver(editSchema) });
+
   function onSubmit(v: Form) {
     const clean = Object.fromEntries(Object.entries(v).map(([k, val]) => [k, val === '' ? undefined : val])) as Form;
     createMutation.mutate(clean as Parameters<typeof createMutation.mutate>[0], { onSuccess: () => { reset(); setShowForm(false); } });
+  }
+
+  function onEditSubmit(v: EditForm) {
+    if (!editingStaff) return;
+    updateMutation.mutate(v, { onSuccess: () => { setEditingStaff(null); setConfirmTerminate(false); } });
+  }
+
+  function handleTerminate() {
+    if (!editingStaff) return;
+    if (!confirmTerminate) {
+      setConfirmTerminate(true);
+      return;
+    }
+    terminateMutation.mutate(new Date().toISOString().slice(0, 10), {
+      onSuccess: () => { setEditingStaff(null); setConfirmTerminate(false); },
+    });
+  }
+
+  function openEdit(s: StaffMember) {
+    setEditingStaff(s);
+    setConfirmTerminate(false);
+    editForm.reset({
+      fullName: s.fullName,
+      role: s.role,
+      department: s.department ?? '',
+      phone: s.phone ?? '',
+      email: s.email ?? '',
+    });
   }
 
   return (
@@ -50,13 +96,13 @@ export default function StaffPage() {
         <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-sm">
           <table className="min-w-full divide-y divide-gray-100 text-sm">
             <thead className="bg-gray-50">
-              <tr>{['Staff No.', 'Name', 'Role', 'Department', 'Type', 'Salary (KES)', 'Status', 'Hire Date'].map((h) => (
+              <tr>{['Staff No.', 'Name', 'Role', 'Department', 'Type', 'Salary (KES)', 'Status', 'Hire Date', 'Actions'].map((h) => (
                 <th key={h} className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wide text-gray-500">{h}</th>
               ))}</tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
               {staff.length === 0 && (
-                <tr><td colSpan={8} className="py-12 text-center">
+                <tr><td colSpan={9} className="py-12 text-center">
                   <UserCog size={28} className="mx-auto mb-2 text-gray-300" />
                   <p className="text-sm text-gray-400">No staff registered yet</p>
                 </td></tr>
@@ -77,6 +123,15 @@ export default function StaffPage() {
                   <td className="px-4 py-3 text-xs font-medium text-gray-900">{s.basicSalary > 0 ? s.basicSalary.toLocaleString() : '—'}</td>
                   <td className="px-4 py-3"><Badge variant={STATUS_VARIANT[s.status] ?? 'gray'}>{s.status.replace('_', ' ')}</Badge></td>
                   <td className="px-4 py-3 text-xs text-gray-500">{formatDate(s.hireDate)}</td>
+                  <td className="px-4 py-3">
+                    <button
+                      onClick={() => openEdit(s)}
+                      className="rounded-lg p-1.5 text-gray-400 hover:bg-brand-50 hover:text-brand-700 transition-colors"
+                      title="Edit"
+                    >
+                      <Edit2 size={14} />
+                    </button>
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -84,6 +139,7 @@ export default function StaffPage() {
         </div>
       )}
 
+      {/* Create modal */}
       {showForm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 overflow-y-auto">
           <div className="w-full max-w-2xl my-4 rounded-2xl bg-white shadow-2xl">
@@ -121,6 +177,51 @@ export default function StaffPage() {
               <div className="flex gap-3 pt-1">
                 <Button type="submit" loading={createMutation.isPending} className="flex-1">Save Staff Member</Button>
                 <Button type="button" variant="secondary" onClick={() => { setShowForm(false); reset(); }}>Cancel</Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit modal */}
+      {editingStaff && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 overflow-y-auto">
+          <div className="w-full max-w-md my-4 rounded-2xl bg-white shadow-2xl">
+            <div className="flex items-center justify-between border-b border-gray-100 px-6 py-4">
+              <div className="flex items-center gap-2">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-100 text-brand-700"><Edit2 size={16} /></div>
+                <h2 className="font-semibold text-gray-900">Edit Staff Member</h2>
+              </div>
+              <button
+                onClick={() => { setEditingStaff(null); setConfirmTerminate(false); }}
+                className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100"
+              >
+                <X size={18} />
+              </button>
+            </div>
+            <form onSubmit={editForm.handleSubmit(onEditSubmit)} noValidate className="px-6 py-5 space-y-4">
+              <Input label="Full name" required error={editForm.formState.errors.fullName?.message} {...editForm.register('fullName')} />
+              <Input label="Role / Job title" required error={editForm.formState.errors.role?.message} {...editForm.register('role')} />
+              <Input label="Department" hint="Optional" {...editForm.register('department')} />
+              <Input label="Phone" type="tel" hint="Optional" {...editForm.register('phone')} />
+              <Input label="Email" type="email" hint="Optional" {...editForm.register('email')} />
+              <div className="flex flex-wrap gap-3 pt-1 border-t border-gray-100">
+                <Button type="submit" loading={updateMutation.isPending} className="flex-1">Save Changes</Button>
+                <Button
+                  type="button"
+                  variant={confirmTerminate ? 'danger' : 'secondary'}
+                  loading={terminateMutation.isPending}
+                  onClick={handleTerminate}
+                >
+                  {confirmTerminate ? 'Confirm Terminate' : 'Terminate'}
+                </Button>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={() => { setEditingStaff(null); setConfirmTerminate(false); }}
+                >
+                  Cancel
+                </Button>
               </div>
             </form>
           </div>

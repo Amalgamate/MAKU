@@ -25,3 +25,12 @@ export function useUpdateStaff(id: string) {
     onError: () => toast.error('Update failed'),
   });
 }
+
+export function useTerminateStaff(id: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (endDate: string) => staffService.terminate(id, endDate),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: keys.all }); toast.success('Staff member terminated'); },
+    onError: () => toast.error('Termination failed'),
+  });
+}

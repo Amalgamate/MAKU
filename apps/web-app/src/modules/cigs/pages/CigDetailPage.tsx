@@ -19,6 +19,7 @@ import { AddMemberToCig } from '../components/AddMemberToCig';
 import { MeetingForm, type MeetingFormValues } from '../components/MeetingForm';
 import { CigType, MemberStatus } from '@maku/shared-types';
 import type { CigMeeting } from '@maku/shared-types';
+import { useMemberList } from '../../members/hooks/useMembers';
 
 type Tab = 'overview' | 'members' | 'meetings' | 'documents';
 
@@ -68,6 +69,14 @@ export default function CigDetailPage() {
   const uploadDoc = useUploadCigDocument(id!);
   const deleteDoc = useDeleteCigDocument(id!);
   const [deletingDocId, setDeletingDocId] = useState<string | null>(null);
+
+  const [officerSearch, setOfficerSearch] = useState('');
+  const { data: officerMembersData } = useMemberList({
+    search: officerSearch || undefined,
+    status: MemberStatus.ACTIVE,
+    page: 1,
+    perPage: 50,
+  });
 
   const { register, handleSubmit, reset, formState: { errors } } = useForm<EditForm>({
     resolver: zodResolver(editSchema),
@@ -231,10 +240,59 @@ export default function CigDetailPage() {
               <Input label="Registration date" type="date" error={errors.registrationDate?.message} {...register('registrationDate')} />
 
               <h3 className="text-sm font-semibold text-gray-700 pt-2 border-t border-gray-100">CIG Officers</h3>
-              <p className="text-xs text-gray-500 -mt-2">Enter the member UUIDs — a member picker will be added in a future update.</p>
-              <Input label="Chairperson Member ID" hint="UUID of the chairperson member" error={errors.chairpersonMemberId?.message} {...register('chairpersonMemberId')} />
-              <Input label="Secretary Member ID" hint="UUID of the secretary member" error={errors.secretaryMemberId?.message} {...register('secretaryMemberId')} />
-              <Input label="Treasurer Member ID" hint="UUID of the treasurer member" error={errors.treasurerMemberId?.message} {...register('treasurerMemberId')} />
+              <p className="text-xs text-gray-500 -mt-2">Search and select a member</p>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Search member</label>
+                <input
+                  type="search"
+                  placeholder="Search member…"
+                  value={officerSearch}
+                  onChange={(e) => setOfficerSearch(e.target.value)}
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-600 focus:outline-none"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Chairperson</label>
+                <select
+                  {...register('chairpersonMemberId')}
+                  size={4}
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-600 focus:outline-none"
+                >
+                  <option value="">— none —</option>
+                  {(officerMembersData?.data ?? []).map((m) => (
+                    <option key={m.id} value={m.id}>{m.memberNumber ?? 'PENDING'} — {m.fullName}</option>
+                  ))}
+                </select>
+                {errors.chairpersonMemberId && <p className="mt-1 text-xs text-red-600">{errors.chairpersonMemberId.message}</p>}
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Secretary</label>
+                <select
+                  {...register('secretaryMemberId')}
+                  size={4}
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-600 focus:outline-none"
+                >
+                  <option value="">— none —</option>
+                  {(officerMembersData?.data ?? []).map((m) => (
+                    <option key={m.id} value={m.id}>{m.memberNumber ?? 'PENDING'} — {m.fullName}</option>
+                  ))}
+                </select>
+                {errors.secretaryMemberId && <p className="mt-1 text-xs text-red-600">{errors.secretaryMemberId.message}</p>}
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Treasurer</label>
+                <select
+                  {...register('treasurerMemberId')}
+                  size={4}
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-600 focus:outline-none"
+                >
+                  <option value="">— none —</option>
+                  {(officerMembersData?.data ?? []).map((m) => (
+                    <option key={m.id} value={m.id}>{m.memberNumber ?? 'PENDING'} — {m.fullName}</option>
+                  ))}
+                </select>
+                {errors.treasurerMemberId && <p className="mt-1 text-xs text-red-600">{errors.treasurerMemberId.message}</p>}
+              </div>
             </div>
           ) : (
             <dl className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm">

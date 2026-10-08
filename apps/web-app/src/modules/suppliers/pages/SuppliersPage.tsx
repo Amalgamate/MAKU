@@ -2,10 +2,10 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Building2, Plus, X, Star, Search } from 'lucide-react';
+import { Building2, Plus, X, Star, Search, Edit2 } from 'lucide-react';
 import { Button, Input, Card, Badge, Spinner } from '@maku/ui';
-import { useSupplierList, useCreateSupplier } from '../hooks/useSuppliers';
-import type { SupplierCategory } from '@maku/shared-types';
+import { useSupplierList, useCreateSupplier, useUpdateSupplier, useDeactivateSupplier } from '../hooks/useSuppliers';
+import type { Supplier, SupplierCategory } from '@maku/shared-types';
 
 const CAT_LABELS: Record<SupplierCategory, string> = {
   livestock:'Livestock', feed:'Feed', veterinary:'Veterinary',
@@ -22,18 +22,70 @@ const schema = z.object({
 });
 type Form = z.infer<typeof schema>;
 
+const editSchema = z.object({
+  name: z.string().min(2),
+  contactName: z.string().optional(),
+  phone: z.string().optional(),
+  email: z.string().email().optional().or(z.literal('')),
+  category: z.string().optional(),
+  physicalAddress: z.string().optional(),
+});
+type EditForm = z.infer<typeof editSchema>;
+
 export default function SuppliersPage() {
   const [search, setSearch] = useState('');
   const [showForm, setShowForm] = useState(false);
+  const [editingSupplier, setEditingSupplier] = useState<Supplier | null>(null);
+  const [confirmDeactivate, setConfirmDeactivate] = useState(false);
+
   const { data: suppliers = [], isLoading } = useSupplierList(search || undefined);
   const createMutation = useCreateSupplier();
-  const { register, handleSubmit, reset, formState: { errors } } = useForm<Form>({ resolver: zodResolver(schema), defaultValues: { category: 'other' } });
+  const updateMutation = useUpdateSupplier(editingSupplier?.id ?? '');
+  const deactivateMutation = useDeactivateSupplier(editingSupplier?.id ?? '');
+
+  const { register, handleSubmit, reset, formState: { errors } } = useForm<Form>({
+    resolver: zodResolver(schema), defaultValues: { category: 'other' },
+  });
+
+  const editForm = useForm<EditForm>({ resolver: zodResolver(editSchema) });
 
   function onSubmit(v: Form) {
     createMutation.mutate(
       { ...v, category: v.category as import('@maku/shared-types').SupplierCategory },
       { onSuccess: () => { reset(); setShowForm(false); } },
     );
+  }
+
+  function onEditSubmit(v: EditForm) {
+    if (!editingSupplier) return;
+    updateMutation.mutate(
+      { ...v, category: v.category as import('@maku/shared-types').SupplierCategory },
+      { onSuccess: () => { setEditingSupplier(null); setConfirmDeactivate(false); } },
+    );
+  }
+
+  function handleDeactivate() {
+    if (!editingSupplier) return;
+    if (!confirmDeactivate) {
+      setConfirmDeactivate(true);
+      return;
+    }
+    deactivateMutation.mutate(undefined, {
+      onSuccess: () => { setEditingSupplier(null); setConfirmDeactivate(false); },
+    });
+  }
+
+  function openEdit(s: Supplier) {
+    setEditingSupplier(s);
+    setConfirmDeactivate(false);
+    editForm.reset({
+      name: s.name,
+      contactName: s.contactName ?? '',
+      phone: s.phone ?? '',
+      email: s.email ?? '',
+      category: s.category ?? 'other',
+      physicalAddress: s.physicalAddress ?? '',
+    });
   }
 
   return (
@@ -64,6 +116,13 @@ export default function SuppliersPage() {
                 <div className="flex items-center gap-1.5 shrink-0">
                   <Badge variant="blue">{CAT_LABELS[s.category as SupplierCategory] ?? s.category}</Badge>
                   {!s.isActive && <Badge variant="gray">Inactive</Badge>}
+                  <button
+                    onClick={() => openEdit(s)}
+                    className="rounded-lg p-1 text-gray-400 hover:bg-brand-50 hover:text-brand-700 transition-colors"
+                    title="Edit supplier"
+                  >
+                    <Edit2 size={13} />
+                  </button>
                 </div>
               </div>
               <h3 className="font-semibold text-gray-900 mb-1">{s.name}</h3>
@@ -81,6 +140,7 @@ export default function SuppliersPage() {
         </div>
       )}
 
+      {/* Create modal */}
       {showForm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 overflow-y-auto">
           <div className="w-full max-w-lg my-4 rounded-2xl bg-white shadow-2xl">
@@ -112,6 +172,57 @@ export default function SuppliersPage() {
               <div className="flex gap-3 pt-1">
                 <Button type="submit" loading={createMutation.isPending} className="flex-1">Register Supplier</Button>
                 <Button type="button" variant="secondary" onClick={() => { setShowForm(false); reset(); }}>Cancel</Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit modal */}
+      {editingSupplier && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 overflow-y-auto">
+          <div className="w-full max-w-md my-4 rounded-2xl bg-white shadow-2xl">
+            <div className="flex items-center justify-between border-b border-gray-100 px-6 py-4">
+              <div className="flex items-center gap-2">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-100 text-brand-700"><Edit2 size={16} /></div>
+                <h2 className="font-semibold text-gray-900">Edit Supplier</h2>
+              </div>
+              <button
+                onClick={() => { setEditingSupplier(null); setConfirmDeactivate(false); }}
+                className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100"
+              >
+                <X size={18} />
+              </button>
+            </div>
+            <form onSubmit={editForm.handleSubmit(onEditSubmit)} noValidate className="px-6 py-5 space-y-4">
+              <Input label="Supplier name" required error={editForm.formState.errors.name?.message} {...editForm.register('name')} />
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
+                <select {...editForm.register('category')} className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-600 focus:outline-none">
+                  {Object.entries(CAT_LABELS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+                </select>
+              </div>
+              <Input label="Contact person" hint="Optional" {...editForm.register('contactName')} />
+              <Input label="Phone" type="tel" hint="Optional" {...editForm.register('phone')} />
+              <Input label="Email" type="email" hint="Optional" error={editForm.formState.errors.email?.message} {...editForm.register('email')} />
+              <Input label="Physical address" hint="Optional" {...editForm.register('physicalAddress')} />
+              <div className="flex flex-wrap gap-3 pt-1 border-t border-gray-100">
+                <Button type="submit" loading={updateMutation.isPending} className="flex-1">Save Changes</Button>
+                <Button
+                  type="button"
+                  variant={confirmDeactivate ? 'danger' : 'secondary'}
+                  loading={deactivateMutation.isPending}
+                  onClick={handleDeactivate}
+                >
+                  {confirmDeactivate ? 'Confirm Deactivate' : 'Deactivate'}
+                </Button>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={() => { setEditingSupplier(null); setConfirmDeactivate(false); }}
+                >
+                  Cancel
+                </Button>
               </div>
             </form>
           </div>
