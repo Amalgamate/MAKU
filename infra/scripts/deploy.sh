@@ -81,7 +81,13 @@ sudo nginx -t
 sudo systemctl reload nginx
 
 echo '==> Checking production endpoints'
-curl --fail --silent --show-error --resolve maku.trendscore.co.ke:443:127.0.0.1 https://maku.trendscore.co.ke/ >/dev/null
-curl --fail --silent --show-error --resolve app.maku.trendscore.co.ke:443:127.0.0.1 https://app.maku.trendscore.co.ke/ >/dev/null
-curl --fail --silent --show-error --resolve maku.trendscore.co.ke:443:127.0.0.1 https://maku.trendscore.co.ke/v1/health >/dev/null
+for hostname in maku.trendscore.co.ke app.maku.trendscore.co.ke; do
+  if ! sudo openssl x509 -in /etc/letsencrypt/live/maku.trendscore.co.ke/fullchain.pem \
+    -noout -checkhost "$hostname" >/dev/null; then
+    echo "ERROR: production certificate does not cover ${hostname}." >&2
+    exit 1
+  fi
+  curl --fail --silent --show-error "https://${hostname}/" >/dev/null
+done
+curl --fail --silent --show-error https://maku.trendscore.co.ke/v1/health >/dev/null
 echo 'MAKU deployment completed successfully.'
