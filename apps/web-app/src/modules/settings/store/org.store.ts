@@ -10,6 +10,7 @@ interface OrgSettings {
   setTagline: (tagline: string) => void;
   setLogoUrl: (url: string | null) => void;
   setPrimaryColor: (color: string) => void;
+  hydrate: (s: { name?: string; tagline?: string; logoUrl?: string | null; primaryColor?: string }) => void;
 }
 
 export const useOrgStore = create<OrgSettings>()(
@@ -24,6 +25,13 @@ export const useOrgStore = create<OrgSettings>()(
       setTagline: (tagline) => set({ tagline }),
       setLogoUrl: (logoUrl) => set({ logoUrl }),
       setPrimaryColor: (primaryColor) => set({ primaryColor }),
+      hydrate: (s) =>
+        set({
+          name: s.name ?? 'MAKU',
+          tagline: s.tagline ?? '',
+          logoUrl: s.logoUrl ?? null,
+          primaryColor: s.primaryColor ?? '#7e2710',
+        }),
     }),
     {
       name: 'maku-org-settings',

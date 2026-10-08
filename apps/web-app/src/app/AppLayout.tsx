@@ -1,15 +1,33 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Outlet } from 'react-router-dom';
 import { Sidebar } from '../shared/components/Sidebar';
 import { TopBar } from '../shared/components/TopBar';
 import { OfflineBanner } from '../shared/components/OfflineBanner';
 import { ToastContainer } from '../shared/components/ToastContainer';
 import { PageLoaderOverlay, usePageTransition } from '../shared/components/PageLoader';
+import { useOrgSettings } from '../modules/settings/hooks/useOrgSettings';
+import { useOrgStore } from '../modules/settings/store/org.store';
 
 export function AppLayout() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
   const { loading, pageKey } = usePageTransition();
+
+  const { data: orgData } = useOrgSettings();
+  const org = useOrgStore();
+
+  // Hydrate org store from API on session start
+  useEffect(() => {
+    if (orgData) {
+      org.hydrate({
+        name: orgData.orgName,
+        tagline: orgData.tagline ?? '',
+        logoUrl: orgData.logoUrl,
+        primaryColor: orgData.primaryColor,
+      });
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [orgData]);
 
   return (
     <div className="flex h-screen overflow-hidden bg-gray-50">

@@ -1,10 +1,11 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Upload, X, CheckCircle, Settings, Palette } from 'lucide-react';
 import { Button, Input, Card } from '@maku/ui';
 import { useOrgStore } from '../store/org.store';
+import { useOrgSettings, useUpdateOrgSettings } from '../hooks/useOrgSettings';
 
 const schema = z.object({
   name: z.string().min(2, 'Organisation name is required'),
@@ -28,15 +29,50 @@ export default function SystemSettingsPage() {
   const [logoPreview, setLogoPreview] = useState<string | null>(org.logoUrl);
   const [dragOver, setDragOver] = useState(false);
 
-  const { register, handleSubmit, formState: { errors } } = useForm<FormValues>({
+  const { data: apiSettings } = useOrgSettings();
+  const updateOrgSettings = useUpdateOrgSettings();
+
+  const { register, handleSubmit, reset, formState: { errors } } = useForm<FormValues>({
     defaultValues: { name: org.name, tagline: org.tagline },
   });
 
+  // Hydrate form from API data on first load only
+  const hydratedRef = useRef(false);
+  useEffect(() => {
+    if (apiSettings && !hydratedRef.current) {
+      hydratedRef.current = true;
+      reset({ name: apiSettings.orgName, tagline: apiSettings.tagline ?? '' });
+      setLogoPreview(apiSettings.logoUrl);
+      // Sync Zustand store with API data
+      org.hydrate({
+        name: apiSettings.orgName,
+        tagline: apiSettings.tagline ?? '',
+        logoUrl: apiSettings.logoUrl,
+        primaryColor: apiSettings.primaryColor,
+      });
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [apiSettings]);
+
   function onSave(values: FormValues) {
+    // Update Zustand immediately for sidebar refresh
     org.setName(values.name);
     org.setTagline(values.tagline ?? '');
-    setSaved(true);
-    setTimeout(() => setSaved(false), 3000);
+    // Persist to API
+    updateOrgSettings.mutate(
+      {
+        orgName: values.name,
+        tagline: values.tagline ?? '',
+        logoUrl: logoPreview,
+        primaryColor: org.primaryColor,
+      },
+      {
+        onSuccess: () => {
+          setSaved(true);
+          setTimeout(() => setSaved(false), 3000);
+        },
+      },
+    );
   }
 
   function handleLogoFile(file: File) {
@@ -46,6 +82,8 @@ export default function SystemSettingsPage() {
       const url = e.target?.result as string;
       setLogoPreview(url);
       org.setLogoUrl(url);
+      // Persist logo to API
+      updateOrgSettings.mutate({ logoUrl: url });
     };
     reader.readAsDataURL(file);
   }
@@ -66,6 +104,7 @@ export default function SystemSettingsPage() {
   function removeLogo() {
     setLogoPreview(null);
     org.setLogoUrl(null);
+    updateOrgSettings.mutate({ logoUrl: null });
   }
 
   return (
@@ -169,7 +208,9 @@ export default function SystemSettingsPage() {
             {...register('tagline')}
           />
           <div className="flex items-center gap-3 pt-1">
-            <Button type="submit">Save changes</Button>
+            <Button type="submit" disabled={updateOrgSettings.isPending}>
+              {updateOrgSettings.isPending ? 'Saving…' : 'Save changes'}
+            </Button>
             {saved && (
               <span className="flex items-center gap-1.5 text-sm text-green-600 font-medium">
                 <CheckCircle size={15} /> Saved

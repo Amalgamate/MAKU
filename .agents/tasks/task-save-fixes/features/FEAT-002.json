@@ -2,7 +2,7 @@
   "id": "FEAT-002",
   "type": "feat",
   "description": "Create the org settings persistence API module and wire it to the frontend so that organisation name, tagline, logo, and colour are stored in the database rather than only in localStorage. Website logo on the public site flows through automatically once the org store is hydrated from the API.",
-  "status": "pending",
+  "status": "completed",
   "steps": [
     "Create apps/api/src/modules/settings/org-settings.entity.ts: @Entity('org_settings') class OrgSettings with fields: id (varchar(5) PK, default '1' — use @PrimaryColumn({ type: 'varchar', length: 5 }) and set id='1' in service), orgName (varchar 200 default 'MAKU'), tagline (varchar 500 nullable), logoUrl (varchar 1000 nullable — needs to hold base64 data URLs which can be long), primaryColor (varchar 20 default '#7e2710'), updatedAt (@UpdateDateColumn timestamptz).",
 
@@ -39,5 +39,5 @@
     "cd 'c:\\Amalgamate\\Projects\\Trends CORE Apps\\MAKU' && pnpm typecheck:api && pnpm typecheck:app"
   ],
   "blocked_reason": null,
-  "findings": ""
+  "findings": "All steps implemented. API module (entity, service, controller, module, dto) created. FEAT-001 stub settings.module.ts replaced with full implementation. Frontend hook useOrgSettings.ts created. org.store.ts hydrate() action added. SystemSettingsPage.tsx updated to call API on save/logo upload/remove. AppLayout.tsx hydrates org store from API on session start. pnpm typecheck:api and pnpm typecheck:app both exit 0."
 }
