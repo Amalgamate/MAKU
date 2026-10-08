@@ -47,6 +47,9 @@ if ! sudo test -f "$SCHEMA_MARKER"; then
   "${COMPOSE[@]}" run --rm --no-deps api node dist/database/initialize-schema.js
   sudo install -d -m 755 "$(dirname "$SCHEMA_MARKER")"
   sudo touch "$SCHEMA_MARKER"
+else
+  echo '==> Applying additive entity schema updates'
+  "${COMPOSE[@]}" run --rm --no-deps api node dist/database/initialize-schema.js
 fi
 
 echo '==> Starting API'

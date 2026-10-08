@@ -180,7 +180,7 @@ function GlobalSettings({ settings }: { settings: NonNullable<ReturnType<typeof 
 // ─── Main page ────────────────────────────────────────────────────────────────
 
 export default function WebsiteBuilderPage() {
-  const { data: settings, isLoading } = useWebsiteSettings();
+  const { data: settings, isLoading, isError, refetch } = useWebsiteSettings();
   const addPageMutation = useAddPage();
   const updatePageMutation = useUpdatePage();
   const deletePageMutation = useDeletePage();
@@ -245,7 +245,22 @@ export default function WebsiteBuilderPage() {
   }
 
   if (isLoading) return <div className="flex justify-center py-16"><Spinner size="lg" /></div>;
-  if (!settings) return null;
+  if (isError || !settings) {
+    return (
+      <div className="page-container">
+        <Card>
+          <div className="mx-auto max-w-lg py-8 text-center">
+            <Globe size={28} className="mx-auto mb-3 text-gray-400" />
+            <h1 className="text-lg font-semibold text-gray-900">Website builder could not load</h1>
+            <p className="mt-2 text-sm text-gray-600">
+              The website settings could not be retrieved. Check the API and database, then try again.
+            </p>
+            <Button className="mt-4" onClick={() => void refetch()}>Try again</Button>
+          </div>
+        </Card>
+      </div>
+    );
+  }
 
   const PUBLIC_URL = import.meta.env['VITE_PUBLIC_URL'] ?? 'http://localhost:4000';
 
