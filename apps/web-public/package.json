@@ -14,6 +14,8 @@
     "@maku/shared-types": "workspace:*",
     "@maku/ui": "workspace:*",
     "@maku/utils": "workspace:*",
+    "@tanstack/react-query": "5.67.2",
+    "axios": "1.7.9",
     "react": "18.3.1",
     "react-dom": "18.3.1",
     "react-router-dom": "6.28.1",

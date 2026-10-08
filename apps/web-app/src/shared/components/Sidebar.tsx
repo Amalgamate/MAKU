@@ -1,36 +1,17 @@
 import { useState, useEffect, useRef } from 'react';
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import {
-  LayoutDashboard,
-  Users,
-  Network,
-  Beef,
-  Tractor,
-  Droplets,
-  Sprout,
-  ShoppingCart,
-  Landmark,
-  Wallet,
-  ClipboardList,
-  UserCog,
-  Building2,
-  Globe,
-  TrendingUp,
-  FolderOpen,
-  FileText,
-  MessageSquare,
-  Shield,
-  Settings,
-  LogOut,
-  X,
-  ChevronDown,
-  BarChart3,
-  ChevronsLeft,
-  ChevronsRight,
+  LayoutDashboard, Users, Network, Beef, Tractor, Droplets, Sprout,
+  ShoppingCart, Landmark, Wallet, ClipboardList, UserCog, Building2,
+  Globe, TrendingUp, FolderOpen, FileText, MessageSquare, Shield,
+  Settings, LogOut, X, ChevronDown, BarChart3, ChevronsLeft, ChevronsRight,
 } from 'lucide-react';
 import { useAuthStore } from '../store/auth.store';
 import { useOrgStore } from '../../modules/settings/store/org.store';
 import { Avatar } from '@maku/ui';
+
+// Read version from the monorepo package.json at build time
+const APP_VERSION = '1.0';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -121,6 +102,7 @@ const navGroups: NavGroup[] = [
     label: 'Tools',
     icon: <Settings size={20} />,
     items: [
+      { label: 'Website Builder', to: '/website', icon: <Globe size={16} /> },
       { label: 'Documents',      to: '/documents',      icon: <FileText size={16} /> },
       { label: 'Communications', to: '/communications', icon: <MessageSquare size={16} /> },
       { label: 'Audit Trail',    to: '/audit',          icon: <Shield size={16} /> },
@@ -212,20 +194,36 @@ function NavGroupExpanded({
 
       {/* Animated items */}
       <AnimatedPanel open={isOpen}>
-        {group.items.map((item) => (
-          <NavLink
-            key={item.to}
-            to={item.to}
-            end={item.to === '/dashboard'}
-            onClick={onClose}
-            className={({ isActive }) =>
-              ['ml-2', linkBase, isActive ? linkActive : linkInactive].join(' ')
-            }
-          >
-            <span className="shrink-0 opacity-80">{item.icon}</span>
-            <span className="flex-1 truncate">{item.label}</span>
-          </NavLink>
-        ))}
+        {group.items.map((item, index) => {
+          const isLast = index === group.items.length - 1;
+          return (
+            <div key={item.to} className="relative ml-3 flex items-stretch">
+              {/* Vertical line */}
+              <div className="relative flex w-4 shrink-0 flex-col items-center">
+                {/* Top segment of vertical line */}
+                <div className="w-px flex-1 bg-white/15" />
+                {/* Horizontal tick to item */}
+                <div className="absolute top-1/2 left-0 h-px w-3 -translate-y-1/2 bg-white/15" />
+                {/* Bottom segment — hidden on last item */}
+                {!isLast && <div className="w-px flex-1 bg-white/15" />}
+                {isLast && <div className="w-px flex-1 opacity-0" />}
+              </div>
+
+              {/* Nav link */}
+              <NavLink
+                to={item.to}
+                end={item.to === '/dashboard'}
+                onClick={onClose}
+                className={({ isActive }) =>
+                  ['flex-1', linkBase, isActive ? linkActive : linkInactive].join(' ')
+                }
+              >
+                <span className="shrink-0 opacity-80">{item.icon}</span>
+                <span className="flex-1 truncate">{item.label}</span>
+              </NavLink>
+            </div>
+          );
+        })}
       </AnimatedPanel>
     </div>
   );
@@ -316,30 +314,18 @@ export function Sidebar({ mobileOpen, onMobileClose, collapsed, onToggleCollapse
         >
           {!isCollapsed && (
             <div className="flex items-center gap-2 min-w-0">
-              {org.logoUrl ? (
-                <img
-                  src={org.logoUrl}
-                  alt={org.name}
-                  className="h-8 w-auto max-w-[120px] object-contain shrink-0"
-                />
-              ) : (
-                <>
-                  <Sprout size={22} className="text-brand-200 shrink-0" />
-                  <div className="min-w-0">
-                    <span className="text-sm font-bold text-white tracking-tight block leading-tight">{org.name}</span>
-                    <span className="text-[10px] text-brand-300 leading-tight block">Cooperative Platform</span>
-                  </div>
-                </>
-              )}
+              <Sprout size={18} className="text-brand-200 shrink-0" />
+              <div className="min-w-0">
+                <span className="text-xs font-bold text-white tracking-wide block leading-tight uppercase">
+                  MAKU Admin Portal
+                </span>
+                <span className="text-[10px] text-brand-300 leading-tight block font-medium tracking-widest">
+                  V.{APP_VERSION}
+                </span>
+              </div>
             </div>
           )}
-          {isCollapsed && (
-            org.logoUrl ? (
-              <img src={org.logoUrl} alt={org.name} className="h-7 w-7 object-contain rounded" />
-            ) : (
-              <Sprout size={24} className="text-brand-200" />
-            )
-          )}
+          {isCollapsed && <Sprout size={18} className="text-brand-200" />}
 
           <div className="flex shrink-0 items-center">
             {!mobile && (
@@ -424,6 +410,11 @@ export function Sidebar({ mobileOpen, onMobileClose, collapsed, onToggleCollapse
                   <LogOut size={13} />
                   Sign out
                 </button>
+
+                {/* Distributor credit */}
+                <p className="mt-2 px-2 text-[9px] font-semibold tracking-[0.18em] text-brand-400 uppercase" style={{ fontVariant: 'small-caps' }}>
+                  Distributed by TrendsCore Solutions
+                </p>
               </>
             )}
           </div>

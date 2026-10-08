@@ -12,25 +12,14 @@
     @apply bg-warm-50 text-gray-900 antialiased;
   }
 
-  /* Hide scrollbars globally — use overflow utilities per-element where needed */
-  ::-webkit-scrollbar {
-    width: 4px;
-    height: 4px;
-  }
-  ::-webkit-scrollbar-track {
-    background: transparent;
-  }
-  ::-webkit-scrollbar-thumb {
-    @apply bg-gray-300 rounded-full;
-  }
-  ::-webkit-scrollbar-thumb:hover {
-    @apply bg-gray-400;
-  }
+  /* Thin scrollbars globally */
+  ::-webkit-scrollbar { width: 4px; height: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { @apply bg-gray-300 rounded-full; }
+  ::-webkit-scrollbar-thumb:hover { @apply bg-gray-400; }
 
   /* Sidebar nav — completely hidden scrollbar */
-  nav[aria-label="Main navigation"]::-webkit-scrollbar {
-    display: none;
-  }
+  nav[aria-label="Main navigation"]::-webkit-scrollbar { display: none; }
 
   :focus-visible {
     @apply outline-none ring-2 ring-brand-600 ring-offset-2;
@@ -41,8 +30,22 @@
   .page-container {
     @apply mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-6;
   }
-
   .section-heading {
     @apply text-xl font-semibold text-gray-900;
+  }
+
+  .page-enter {
+    animation: pageEnter 600ms cubic-bezier(0.4, 0, 0.2, 1) both;
+  }
+}
+
+@keyframes pageEnter {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }

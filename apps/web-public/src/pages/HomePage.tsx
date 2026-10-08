@@ -1,8 +1,12 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Users, Beef, Droplets, Sprout, ArrowRight } from 'lucide-react';
+import { useCmsPage, useCmsSettings } from '../hooks/useWebsiteCms';
+import { BlockRenderer } from '../components/BlockRenderer';
 
 const APP_URL = import.meta.env['VITE_APP_URL'] ?? 'https://app.maku.trendscore.co.ke';
+
+// ─── Static fallback content (shown when CMS has no home page) ───────────────
 
 const stats = [
   { label: 'Registered Members', value: '1,200+', icon: <Users size={28} className="text-brand-700" /> },
@@ -11,7 +15,7 @@ const stats = [
   { label: 'Common Interest Groups', value: '34', icon: <Sprout size={28} className="text-brand-700" /> },
 ];
 
-export default function HomePage() {
+function StaticHome() {
   return (
     <>
       {/* Hero */}
@@ -97,4 +101,34 @@ export default function HomePage() {
       </section>
     </>
   );
+}
+
+// ─── Main component ───────────────────────────────────────────────────────────
+
+export default function HomePage() {
+  const { page, isLoading } = useCmsPage('home');
+  const { data: settings } = useCmsSettings();
+
+  // Update page title from CMS settings
+  useEffect(() => {
+    if (settings?.siteName) {
+      document.title = settings.siteName;
+    }
+  }, [settings]);
+
+  // While loading, show static content (avoids blank screen)
+  if (isLoading) return <StaticHome />;
+
+  // If CMS has a published home page with blocks, render it; otherwise fall back
+  if (page && page.blocks.length > 0) {
+    return (
+      <>
+        {page.blocks.map((block, i) => (
+          <BlockRenderer key={i} block={block} />
+        ))}
+      </>
+    );
+  }
+
+  return <StaticHome />;
 }

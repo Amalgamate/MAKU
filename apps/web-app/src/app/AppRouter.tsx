@@ -3,6 +3,7 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import { AppLayout } from './AppLayout';
 import { ProtectedRoute } from './ProtectedRoute';
 import { Spinner } from '@maku/ui';
+import { PageLoaderOverlay } from '../shared/components/PageLoader';
 
 // ─── Auth ────────────────────────────────────────────────────────────────────
 const LoginPage = lazy(() => import('../modules/auth/pages/LoginPage'));
@@ -51,6 +52,9 @@ const NgosPage = lazy(() => import('../modules/ngos/pages/NgosPage'));
 const GrantsPage = lazy(() => import('../modules/grants/pages/GrantsPage'));
 const ProjectsPage = lazy(() => import('../modules/projects/pages/ProjectsPage'));
 
+// ─── Website ─────────────────────────────────────────────────────────────────
+const WebsiteBuilderPage = lazy(() => import('../modules/website/pages/WebsiteBuilderPage'));
+
 // ─── Tools ───────────────────────────────────────────────────────────────────
 const DocumentsPage = lazy(() => import('../modules/documents/pages/DocumentsPage'));
 const CommunicationsPage = lazy(() => import('../modules/communications/pages/CommunicationsPage'));
@@ -63,11 +67,7 @@ const UserManagementPage = lazy(() => import('../modules/settings/pages/UserMana
 const SystemSettingsPage = lazy(() => import('../modules/settings/pages/SystemSettingsPage'));
 
 function PageLoader() {
-  return (
-    <div className="flex h-64 items-center justify-center">
-      <Spinner size="lg" />
-    </div>
-  );
+  return <PageLoaderOverlay visible />;
 }
 
 export function AppRouter() {
@@ -131,6 +131,9 @@ export function AppRouter() {
           <Route path="/ngos" element={<NgosPage />} />
           <Route path="/grants" element={<GrantsPage />} />
           <Route path="/projects" element={<ProjectsPage />} />
+
+          {/* Website Builder */}
+          <Route path="/website" element={<WebsiteBuilderPage />} />
 
           {/* Tools */}
           <Route path="/documents" element={<DocumentsPage />} />

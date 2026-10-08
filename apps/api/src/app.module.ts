@@ -19,6 +19,7 @@ import { CommoditiesModule } from './modules/commodities/commodities.module';
 import { NgosModule } from './modules/ngos/ngos.module';
 import { GrantsModule } from './modules/grants/grants.module';
 import { ProjectsModule } from './modules/projects/projects.module';
+import { WebsiteModule } from './modules/website/website.module';
 import { DashboardModule } from './modules/dashboard/dashboard.module';
 import { AuditModule } from './modules/audit/audit.module';
 import { HealthModule } from './modules/health/health.module';
@@ -68,6 +69,7 @@ import { HealthModule } from './modules/health/health.module';
     NgosModule,
     GrantsModule,
     ProjectsModule,
+    WebsiteModule,
     DashboardModule,
     AuditModule,
     HealthModule,

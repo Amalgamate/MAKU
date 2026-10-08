@@ -259,9 +259,15 @@ importers:
       '@maku/utils':
         specifier: workspace:*
         version: link:../../packages/utils
+      '@tanstack/react-query':
+        specifier: 5.67.2
+        version: 5.67.2(react@18.3.1)
       '@types/leaflet':
         specifier: 1.9.16
         version: 1.9.16
+      axios:
+        specifier: 1.7.9
+        version: 1.7.9(debug@4.4.3(supports-color@8.1.1))
       leaflet:
         specifier: 1.9.4
         version: 1.9.4
