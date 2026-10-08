@@ -19,9 +19,6 @@ if (( available_mb < 200 )); then
   exit 1
 fi
 
-echo '==> Building frontend bundles'
-"${COMPOSE[@]}" --profile build run --rm web-build
-
 echo '==> Starting database service'
 "${COMPOSE[@]}" up -d postgres
 for attempt in $(seq 1 40); do
