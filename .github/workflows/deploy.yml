@@ -50,7 +50,24 @@ jobs:
           ssh-keyscan -H "$DEPLOY_HOST" >> ~/.ssh/known_hosts
           printf 'Host maku-production\n  HostName %s\n  User %s\n  IdentityFile ~/.ssh/maku_deploy\n  IdentitiesOnly yes\n' "$DEPLOY_HOST" "$DEPLOY_USER" >> ~/.ssh/config
           chmod 600 ~/.ssh/config ~/.ssh/known_hosts
-          ssh maku-production 'mkdir -p /home/deploy/apps/maku && available_mb=$(df --output=avail -m / | tail -1) && test "$available_mb" -ge 500'
+          ssh maku-production 'mkdir -p /home/deploy/apps/maku'
+
+      - name: Stop Odoo and remove its images
+        run: |
+          ssh maku-production 'bash -s' <<'REMOTE'
+          set -euo pipefail
+          mapfile -t odoo_images < <(sudo docker image ls --format "{{.Repository}}:{{.Tag}}" | awk '$1 ~ /^odoo:/')
+          for image in "${odoo_images[@]}"; do
+            mapfile -t containers < <(sudo docker ps -aq --filter "ancestor=${image}")
+            if ((${#containers[@]})); then
+              mapfile -t running < <(sudo docker ps -q --filter "ancestor=${image}")
+              if ((${#running[@]})); then sudo docker stop "${running[@]}"; fi
+              sudo docker rm "${containers[@]}"
+            fi
+          done
+          if ((${#odoo_images[@]})); then sudo docker image rm "${odoo_images[@]}"; fi
+          echo 'Odoo containers stopped and removed; Odoo images removed. Docker volumes were preserved.'
+          REMOTE
 
       - name: Sync source and built web apps to the server
         run: |
