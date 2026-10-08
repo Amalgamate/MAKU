@@ -23,6 +23,7 @@ import { WebsiteModule } from './modules/website/website.module';
 import { DashboardModule } from './modules/dashboard/dashboard.module';
 import { AuditModule } from './modules/audit/audit.module';
 import { HealthModule } from './modules/health/health.module';
+import { UploadModule } from './modules/upload/upload.module';
 import { FeedlotModule } from './modules/feedlot/feedlot.module';
 import { CommunicationsModule } from './modules/communications/communications.module';
 import { DocumentsModule } from './modules/documents/documents.module';
@@ -81,6 +82,7 @@ import { SettingsModule } from './modules/settings/settings.module';
     AuditModule,
     CommunicationsModule,
     HealthModule,
+    UploadModule,
     SettingsModule,
   ],
 })

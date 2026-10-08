@@ -6,6 +6,7 @@ import { Upload, X, CheckCircle, Settings, Palette } from 'lucide-react';
 import { Button, Input, Card } from '@maku/ui';
 import { useOrgStore } from '../store/org.store';
 import { useOrgSettings, useUpdateOrgSettings } from '../hooks/useOrgSettings';
+import { apiClient } from '../../../shared/services/api.client';
 
 const schema = z.object({
   name: z.string().min(2, 'Organisation name is required'),
@@ -77,15 +78,29 @@ export default function SystemSettingsPage() {
 
   function handleLogoFile(file: File) {
     if (!file.type.startsWith('image/')) return;
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const url = e.target?.result as string;
-      setLogoPreview(url);
-      org.setLogoUrl(url);
-      // Persist logo to API
-      updateOrgSettings.mutate({ logoUrl: url });
-    };
-    reader.readAsDataURL(file);
+    const formData = new FormData();
+    formData.append('file', file);
+    apiClient
+      .post<{ data: { url: string }; message: string }>('/upload/image', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      })
+      .then((res) => {
+        const url = res.data.data.url;
+        setLogoPreview(url);
+        org.setLogoUrl(url);
+        updateOrgSettings.mutate({ logoUrl: url });
+      })
+      .catch(() => {
+        // Fallback: encode as data URL if upload endpoint unavailable
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const dataUrl = e.target?.result as string;
+          setLogoPreview(dataUrl);
+          org.setLogoUrl(dataUrl);
+          updateOrgSettings.mutate({ logoUrl: dataUrl });
+        };
+        reader.readAsDataURL(file);
+      });
   }
 
   function handleFileInput(e: React.ChangeEvent<HTMLInputElement>) {

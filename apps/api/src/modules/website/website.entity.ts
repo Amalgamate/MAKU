@@ -82,10 +82,10 @@ export class WebsiteSettings {
   @Column({ type: 'varchar', length: 500, nullable: true })
   tagline!: string | null;
 
-  @Column({ name: 'logo_url', type: 'varchar', length: 500, nullable: true })
+  @Column({ name: 'logo_url', type: 'text', nullable: true })
   logoUrl!: string | null;
 
-  @Column({ name: 'favicon_url', type: 'varchar', length: 500, nullable: true })
+  @Column({ name: 'favicon_url', type: 'text', nullable: true })
   faviconUrl!: string | null;
 
   @Column({ name: 'primary_color', type: 'varchar', length: 20, default: '#7e2710' })

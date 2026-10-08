@@ -16,8 +16,8 @@ export class OrgSettings {
   @Column({ type: 'varchar', length: 500, nullable: true })
   tagline!: string | null;
 
-  /** Holds base64 data URLs or remote URLs — kept long enough for base64 */
-  @Column({ name: 'logo_url', type: 'varchar', length: 1000, nullable: true })
+  /** Holds base64 data URLs or remote URLs — stored as text to support large base64 payloads */
+  @Column({ name: 'logo_url', type: 'text', nullable: true })
   logoUrl!: string | null;
 
   @Column({ name: 'primary_color', type: 'varchar', length: 20, default: '#7e2710' })

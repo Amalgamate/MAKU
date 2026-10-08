@@ -237,7 +237,7 @@ function ContactBlock({ block }: { block: CmsBlock }) {
 // ─── Testimonial block ────────────────────────────────────────────────────────
 
 function TestimonialBlock({ block }: { block: CmsBlock }) {
-  const items = (block['items'] as Array<{ name: string; role: string; quote: string }>) ?? [];
+  const items = (block['items'] as Array<{ name: string; role: string; quote: string; avatarUrl?: string }>) ?? [];
   const heading = s(block['heading']);
 
   return (
@@ -249,9 +249,18 @@ function TestimonialBlock({ block }: { block: CmsBlock }) {
             <div key={i} className="rounded-xl border border-gray-200 bg-gray-50 p-6">
               <Quote size={24} className="text-brand-200 mb-3" />
               <p className="text-gray-700 italic mb-4">"{t.quote}"</p>
-              <div>
-                <p className="font-semibold text-gray-900">{t.name}</p>
-                <p className="text-sm text-gray-500">{t.role}</p>
+              <div className="flex items-center gap-3">
+                {t.avatarUrl ? (
+                  <img src={t.avatarUrl} alt={t.name} className="h-10 w-10 rounded-full object-cover border border-gray-200" />
+                ) : (
+                  <div className="h-10 w-10 rounded-full bg-brand-100 text-brand-700 flex items-center justify-center text-sm font-bold shrink-0">
+                    {t.name.slice(0, 2).toUpperCase()}
+                  </div>
+                )}
+                <div>
+                  <p className="font-semibold text-gray-900">{t.name}</p>
+                  <p className="text-sm text-gray-500">{t.role}</p>
+                </div>
               </div>
             </div>
           ))}

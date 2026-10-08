@@ -1,7 +1,21 @@
-import { Body, Controller, Get, Post, Query } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import {
+  Body,
+  Controller,
+  Get,
+  Post,
+  Query,
+  UploadedFile,
+  UseInterceptors,
+} from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
+import {
+  ApiBearerAuth,
+  ApiBody,
+  ApiConsumes,
+  ApiOperation,
+  ApiTags,
+} from '@nestjs/swagger';
 import { DocumentsService } from './documents.service';
-import { CreateDocumentDto } from './dto/create-document.dto';
 import { CurrentUser } from '../../shared/decorators/current-user.decorator';
 import { Roles } from '../../shared/decorators/roles.decorator';
 import type { JwtPayload } from '../auth/types/jwt-payload.type';
@@ -34,11 +48,42 @@ export class DocumentsController {
   // POST /v1/documents
   @Post()
   @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.FIELD_OFFICER)
-  @ApiOperation({ summary: 'Upload / register a document' })
+  @UseInterceptors(FileInterceptor('file', { limits: { fileSize: 10 * 1024 * 1024 } }))
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        file: { type: 'string', format: 'binary' },
+        title: { type: 'string' },
+        category: { type: 'string' },
+        year: { type: 'integer' },
+        description: { type: 'string' },
+        cigId: { type: 'string', format: 'uuid' },
+      },
+      required: ['file'],
+    },
+  })
+  @ApiOperation({ summary: 'Upload a document (max 10 MB)' })
   async create(
-    @Body() dto: CreateDocumentDto,
+    @Body() body: Record<string, string>,
+    @UploadedFile() file: Express.Multer.File,
     @CurrentUser() caller: JwtPayload,
   ) {
-    return this.svc.create(dto, caller.sub);
+    // Phase 3: stream to MinIO. For now, store locally.
+    const fileUrl = `/uploads/documents/${file.filename || file.originalname}`;
+    return this.svc.create(
+      {
+        title: body['title'] || file.originalname.replace(/\.[^.]+$/, ''),
+        category: body['category'] ?? 'other',
+        fileUrl,
+        fileSize: file.size,
+        mimeType: file.mimetype,
+        year: body['year'] ? parseInt(body['year'], 10) : undefined,
+        description: body['description'] ?? undefined,
+        cigId: body['cigId'] ?? undefined,
+      },
+      caller.sub,
+    );
   }
 }
