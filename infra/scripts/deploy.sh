@@ -91,6 +91,9 @@ echo '==> Checking production endpoints'
 for hostname in maku.trendscore.co.ke app.maku.trendscore.co.ke; do
   echo "DNS addresses for ${hostname}:"
   getent ahosts "$hostname" | awk '!seen[$1]++ {print $1}' || true
+  echo "Certificate served locally for ${hostname} SNI:"
+  timeout 8 openssl s_client -connect 127.0.0.1:443 -servername "$hostname" </dev/null 2>/dev/null \
+    | openssl x509 -noout -subject -ext subjectAltName
   if ! sudo openssl x509 -in /etc/letsencrypt/live/maku.trendscore.co.ke/fullchain.pem \
     -noout -checkhost "$hostname" >/dev/null; then
     echo "ERROR: production certificate does not cover ${hostname}." >&2
