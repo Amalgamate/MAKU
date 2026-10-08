@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { FileText, Upload, Search, Download, Trash2, X, FolderOpen } from 'lucide-react';
+import { FileText, Upload, Search, Download, FolderOpen, X } from 'lucide-react';
 import { Button, Card, Badge } from '@maku/ui';
 import { formatDateTime } from '@maku/utils';
 import { toast } from '../../../shared/store/toast.store';
@@ -10,7 +10,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 interface DocumentItem {
   id: string;
-  name: string;
+  title: string;
   category: string;
   fileUrl: string;
   fileSize: number | null;
@@ -18,12 +18,14 @@ interface DocumentItem {
   year: number | null;
   description: string | null;
   uploadedBy: string | null;
+  cigId: string | null;
+  cigName?: string;
   createdAt: string;
 }
 
 type DocCategory = 'corporate' | 'financial' | 'compliance' | 'projects' | 'partnerships' | 'other';
 
-const CATEGORIES: Record<DocCategory, { label: string; color: 'green' | 'blue' | 'yellow' | 'gray' | 'red' | 'green' }> = {
+const CATEGORIES: Record<DocCategory, { label: string; color: 'green' | 'blue' | 'yellow' | 'gray' | 'red' }> = {
   corporate:    { label: 'Corporate',    color: 'blue' },
   financial:    { label: 'Financial',    color: 'green' },
   compliance:   { label: 'Compliance',   color: 'yellow' },
@@ -48,25 +50,19 @@ function formatSize(bytes: number | null): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-// ─── API hooks using the CIG documents endpoint pattern as template ───────────
-// Documents are stored per-CIG in the CIG module. For global document centre,
-// we'll use a dedicated endpoint when available. For now, aggregate from CIGs.
+// ─── Hooks ────────────────────────────────────────────────────────────────────
 
-function useDocuments() {
+function useDocuments(category?: string) {
   return useQuery({
-    queryKey: ['documents', 'all'],
+    queryKey: ['documents', 'all', category],
     queryFn: async () => {
-      // Fetch documents from all CIGs
-      const cigsRes = await apiClient.get<{ data: Array<{ id: string; name: string }>; message: string }>('/cigs');
-      const cigs = cigsRes.data.data ?? [];
-      const allDocs: (DocumentItem & { cigName: string })[] = [];
-      for (const cig of cigs.slice(0, 20)) {
-        try {
-          const docsRes = await apiClient.get<{ data: DocumentItem[]; message: string }>(`/cigs/${cig.id}/documents`);
-          docsRes.data.data.forEach((d) => allDocs.push({ ...d, cigName: cig.name }));
-        } catch { /* skip */ }
-      }
-      return allDocs;
+      const p = new URLSearchParams();
+      if (category) p.set('category', category);
+      const res = await apiClient.get<{
+        data: { data: DocumentItem[]; meta: { total: number } };
+        message: string;
+      }>(`/documents?${p}`);
+      return res.data.data;
     },
     staleTime: 1000 * 60 * 2,
   });
@@ -87,9 +83,10 @@ export default function DocumentsPage() {
   const fileRef = useRef<HTMLInputElement>(null);
   const qc = useQueryClient();
 
-  const { data: documents = [], isLoading } = useDocuments();
+  const { data: docResult, isLoading } = useDocuments(categoryFilter || undefined);
+  const documents = docResult?.data ?? [];
 
-  // CIG list for upload target
+  // CIG list for optional upload attachment
   const { data: cigsData } = useQuery({
     queryKey: ['cigs-list-for-docs'],
     queryFn: async () => {
@@ -100,28 +97,30 @@ export default function DocumentsPage() {
 
   const uploadMutation = useMutation({
     mutationFn: async () => {
-      if (!selectedFile || !selectedCigId) throw new Error('Missing file or CIG');
+      if (!selectedFile) throw new Error('No file selected');
       const form = new FormData();
       form.append('file', selectedFile);
-      form.append('name', uploadName || selectedFile.name.replace(/\.[^.]+$/, ''));
+      form.append('title', uploadName || selectedFile.name.replace(/\.[^.]+$/, ''));
       form.append('category', uploadCategory);
       if (uploadYear) form.append('year', uploadYear);
       if (uploadDesc) form.append('description', uploadDesc);
-      return apiClient.post(`/cigs/${selectedCigId}/documents`, form, { headers: { 'Content-Type': 'multipart/form-data' } });
+      if (selectedCigId) form.append('cigId', selectedCigId);
+      return apiClient.post('/documents', form, { headers: { 'Content-Type': 'multipart/form-data' } });
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['documents'] });
+      qc.invalidateQueries({ queryKey: ['documents', 'all'] });
       toast.success('Document uploaded', uploadName || selectedFile?.name || '');
       setShowUpload(false);
       setSelectedFile(null);
       setUploadName('');
       setUploadDesc('');
+      setSelectedCigId('');
     },
     onError: () => toast.error('Upload failed', 'Please try again.'),
   });
 
   const filtered = documents.filter((d) => {
-    const matchSearch = !search || d.name.toLowerCase().includes(search.toLowerCase());
+    const matchSearch = !search || d.title.toLowerCase().includes(search.toLowerCase());
     const matchCat = !categoryFilter || d.category === categoryFilter;
     return matchSearch && matchCat;
   });
@@ -207,7 +206,7 @@ export default function DocumentsPage() {
                     <div className="flex items-center gap-2">
                       <span className="text-lg">{fileIcon(doc.mimeType)}</span>
                       <div>
-                        <p className="font-medium text-gray-900 text-sm">{doc.name}</p>
+                        <p className="font-medium text-gray-900 text-sm">{doc.title}</p>
                         {doc.description && (
                           <p className="text-xs text-gray-400 truncate max-w-[200px]">{doc.description}</p>
                         )}
@@ -221,9 +220,7 @@ export default function DocumentsPage() {
                   </td>
                   <td className="px-4 py-3 text-xs text-gray-500">{doc.year ?? '—'}</td>
                   <td className="px-4 py-3 text-xs text-gray-500">{formatSize(doc.fileSize)}</td>
-                  <td className="px-4 py-3 text-xs text-gray-500">
-                    {'cigName' in doc ? (doc as DocumentItem & { cigName: string }).cigName : '—'}
-                  </td>
+                  <td className="px-4 py-3 text-xs text-gray-500">{doc.cigName ?? '—'}</td>
                   <td className="px-4 py-3 text-xs text-gray-500 whitespace-nowrap">
                     {formatDateTime(doc.createdAt)}
                   </td>
@@ -256,8 +253,10 @@ export default function DocumentsPage() {
                 </div>
                 <h2 className="font-semibold text-gray-900">Upload Document</h2>
               </div>
-              <button onClick={() => { setShowUpload(false); setSelectedFile(null); }}
-                className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100">
+              <button
+                onClick={() => { setShowUpload(false); setSelectedFile(null); }}
+                className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100"
+              >
                 <X size={18} />
               </button>
             </div>
@@ -297,15 +296,21 @@ export default function DocumentsPage() {
               {/* Metadata */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Document name</label>
-                <input value={uploadName} onChange={(e) => setUploadName(e.target.value)}
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-600 focus:outline-none" />
+                <input
+                  value={uploadName}
+                  onChange={(e) => setUploadName(e.target.value)}
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-600 focus:outline-none"
+                />
               </div>
 
               <div className="grid gap-3 sm:grid-cols-2">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
-                  <select value={uploadCategory} onChange={(e) => setUploadCategory(e.target.value as DocCategory)}
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-600 focus:outline-none">
+                  <select
+                    value={uploadCategory}
+                    onChange={(e) => setUploadCategory(e.target.value as DocCategory)}
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-600 focus:outline-none"
+                  >
                     {(Object.entries(CATEGORIES) as [DocCategory, { label: string }][]).map(([k, v]) => (
                       <option key={k} value={k}>{v.label}</option>
                     ))}
@@ -313,32 +318,42 @@ export default function DocumentsPage() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Year</label>
-                  <input type="number" value={uploadYear} onChange={(e) => setUploadYear(e.target.value)}
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-600 focus:outline-none" />
+                  <input
+                    type="number"
+                    value={uploadYear}
+                    onChange={(e) => setUploadYear(e.target.value)}
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-600 focus:outline-none"
+                  />
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Attach to CIG</label>
-                <select value={selectedCigId} onChange={(e) => setSelectedCigId(e.target.value)}
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-600 focus:outline-none">
-                  <option value="">Select a CIG</option>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Attach to CIG (optional)</label>
+                <select
+                  value={selectedCigId}
+                  onChange={(e) => setSelectedCigId(e.target.value)}
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-600 focus:outline-none"
+                >
+                  <option value="">None — org-level document</option>
                   {(cigsData ?? []).map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
                 </select>
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Description (optional)</label>
-                <input value={uploadDesc} onChange={(e) => setUploadDesc(e.target.value)}
+                <input
+                  value={uploadDesc}
+                  onChange={(e) => setUploadDesc(e.target.value)}
                   placeholder="Brief description of this document"
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-600 focus:outline-none" />
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-600 focus:outline-none"
+                />
               </div>
 
               <div className="flex gap-3 pt-1">
                 <Button
                   className="flex-1"
                   loading={uploadMutation.isPending}
-                  disabled={!selectedFile || !selectedCigId}
+                  disabled={!selectedFile}
                   onClick={() => uploadMutation.mutate()}
                 >
                   Upload Document

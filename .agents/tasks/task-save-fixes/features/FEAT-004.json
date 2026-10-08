@@ -2,7 +2,7 @@
   "id": "FEAT-004",
   "type": "fix",
   "description": "Fix three minor display/type bugs: audit page total count (data?.total → data?.meta?.total), UsersAdminService response type annotation, and update DocumentsPage to use the new standalone /documents endpoint created in FEAT-001. FEAT-004 depends on FEAT-001 for the documents endpoint.",
-  "status": "pending",
+  "status": "completed",
   "steps": [
     "Update apps/web-app/src/modules/audit/pages/AuditPage.tsx: 1. Change the apiClient.get type annotation in useAuditLogs from `{ data: { data: AuditEntry[]; total: number }; message: string }` to `{ data: { data: AuditEntry[]; meta: { page: number; perPage: number; total: number; totalPages: number } }; message: string }`. 2. Change the query return to `return res.data.data` (no change — this already returns the `{ data: AuditEntry[], meta: {...} }` object). 3. In the component body, `const logs = data?.data ?? []` is already correct. 4. Fix the total count display: change `data?.total` to `data?.meta?.total` in the paragraph text that reads `${data.total.toLocaleString()} entries`. The full corrected line: `{data?.meta?.total ? ` ${data.meta.total.toLocaleString()} entries.` : ''}`.",
 

@@ -18,7 +18,6 @@ export interface UpdateRoleStatusPayload {
 export interface UsersListResponse {
   data: UserProfile[];
   meta: { page: number; perPage: number; total: number; totalPages: number };
-  message: string;
 }
 
 export const usersAdminService = {

@@ -25,7 +25,7 @@ function useAuditLogs(filters: Record<string, string>) {
   return useQuery({
     queryKey: ['audit', filters],
     queryFn: async () => {
-      const res = await apiClient.get<{ data: { data: AuditEntry[]; total: number }; message: string }>(
+      const res = await apiClient.get<{ data: { data: AuditEntry[]; meta: { page: number; perPage: number; total: number; totalPages: number } }; message: string }>(
         `/audit-logs?${params}&page=1&perPage=50`,
       );
       return res.data.data;
@@ -51,7 +51,7 @@ export default function AuditPage() {
           <h1 className="section-heading">Audit Trail</h1>
           <p className="text-sm text-gray-500">
             Immutable log of every action — who did what and when.
-            {data?.total ? ` ${data.total.toLocaleString()} entries.` : ''}
+            {data?.meta?.total ? ` ${data.meta.total.toLocaleString()} entries.` : ''}
           </p>
         </div>
       </div>
