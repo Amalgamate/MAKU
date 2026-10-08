@@ -63,6 +63,9 @@ jobs:
             --exclude='apps/api/.env.production' \
             ./ maku-production:/home/deploy/apps/maku/
 
+      - name: Reclaim space from unused older images
+        run: ssh maku-production 'sudo docker image prune --all --force --filter until=48h'
+
       - name: Transfer production API image
         run: docker save maku-api:latest | gzip -1 | ssh maku-production 'gzip -dc | sudo docker load'
 
