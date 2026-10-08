@@ -101,7 +101,7 @@ jobs:
             exit 1
           fi
           printf '%s\n' "$MAKU_ADMIN_BOOTSTRAP_PASSWORD" | ssh maku-production \
-            'umask 077; cat > /home/deploy/apps/maku/.admin-bootstrap'
+            'umask 077; cat > /dev/shm/maku-admin-bootstrap'
 
       - name: Deploy and verify
         run: ssh maku-production 'cd /home/deploy/apps/maku && chmod +x infra/scripts/*.sh && ./infra/scripts/deploy.sh'
