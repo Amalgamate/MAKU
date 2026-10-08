@@ -66,5 +66,21 @@ jobs:
       - name: Transfer production API image
         run: docker save maku-api:latest | gzip -1 | ssh maku-production 'gzip -dc | sudo docker load'
 
+      - name: Prepare one-time admin bootstrap
+        env:
+          MAKU_ADMIN_BOOTSTRAP_PASSWORD: ${{ secrets.MAKU_ADMIN_BOOTSTRAP_PASSWORD }}
+        run: |
+          set -euo pipefail
+          if [[ -z "$MAKU_ADMIN_BOOTSTRAP_PASSWORD" ]]; then
+            echo 'MAKU_ADMIN_BOOTSTRAP_PASSWORD is not set; administrator bootstrap will be skipped.'
+            exit 0
+          fi
+          if [[ ${#MAKU_ADMIN_BOOTSTRAP_PASSWORD} -lt 12 ]]; then
+            echo 'MAKU_ADMIN_BOOTSTRAP_PASSWORD must be at least 12 characters.' >&2
+            exit 1
+          fi
+          printf '%s\n' "$MAKU_ADMIN_BOOTSTRAP_PASSWORD" | ssh maku-production \
+            'umask 077; cat > /home/deploy/apps/maku/.admin-bootstrap'
+
       - name: Deploy and verify
         run: ssh maku-production 'cd /home/deploy/apps/maku && chmod +x infra/scripts/*.sh && ./infra/scripts/deploy.sh'

@@ -63,6 +63,13 @@ for attempt in $(seq 1 40); do
   sleep 3
 done
 
+if [[ -s .admin-bootstrap ]]; then
+  echo '==> Creating the one-time MAKU administrator if missing'
+  tr -d '\r\n' < .admin-bootstrap | "${COMPOSE[@]}" exec -T api sh -c \
+    'IFS= read -r MAKU_ADMIN_BOOTSTRAP_PASSWORD; export MAKU_ADMIN_BOOTSTRAP_PASSWORD; node dist/database/bootstrap-admin.js'
+  sudo rm -f .admin-bootstrap
+fi
+
 echo '==> Installing MAKU route in existing Nginx'
 if [[ ! -d /etc/letsencrypt/live/maku.trendscore.co.ke ]]; then
   sudo install -m 644 infra/nginx/host-maku-bootstrap.conf "$SITE_AVAILABLE"
