@@ -15,6 +15,7 @@ concurrency:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    environment: maku
     steps:
       - name: Check out release
         uses: actions/checkout@v4
