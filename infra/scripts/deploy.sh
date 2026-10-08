@@ -96,9 +96,11 @@ for hostname in maku.trendscore.co.ke app.maku.trendscore.co.ke; do
     echo "ERROR: production certificate does not cover ${hostname}." >&2
     exit 1
   fi
-  curl --fail --silent --show-error --resolve "${hostname}:443:127.0.0.1" \
+  curl --noproxy '*' --fail --silent --show-error \
+    --resolve "${hostname}:443:127.0.0.1" \
     "https://${hostname}/" >/dev/null
 done
-curl --fail --silent --show-error --resolve maku.trendscore.co.ke:443:127.0.0.1 \
+curl --noproxy '*' --fail --silent --show-error \
+  --resolve maku.trendscore.co.ke:443:127.0.0.1 \
   https://maku.trendscore.co.ke/v1/health >/dev/null
 echo 'MAKU deployment completed successfully.'
