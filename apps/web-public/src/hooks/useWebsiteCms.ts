@@ -13,9 +13,31 @@ export interface CmsSettings {
   isPublished: boolean;
 }
 
+interface OrgSettings {
+  orgName: string; tagline: string | null; logoUrl: string | null; primaryColor: string;
+}
+
 async function fetchSettings(): Promise<CmsSettings> {
-  const res = await axios.get<{ data: CmsSettings }>(`${API}/website/settings`);
-  return res.data.data;
+  // Fetch both in parallel; org settings provides the logo fallback
+  const [websiteRes, orgRes] = await Promise.allSettled([
+    axios.get<{ data: CmsSettings }>(`${API}/website/settings`),
+    axios.get<{ data: OrgSettings }>(`${API}/settings/org`),
+  ]);
+
+  if (websiteRes.status === 'rejected') {
+    throw new Error('Failed to load website settings');
+  }
+
+  const website = websiteRes.value.data.data;
+  const org = orgRes.status === 'fulfilled' ? orgRes.value.data.data : null;
+
+  // If website_settings has no logo, fall back to org_settings logo
+  return {
+    ...website,
+    logoUrl: website.logoUrl ?? org?.logoUrl ?? null,
+    // Also sync siteName/tagline from org if website hasn't overridden them
+    siteName: website.siteName || org?.orgName || 'MAKU',
+  };
 }
 
 export function useCmsSettings() {
