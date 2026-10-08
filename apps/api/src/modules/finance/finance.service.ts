@@ -69,8 +69,8 @@ export class FinanceService {
     const byCategory: Record<string, { income: number; expense: number }> = {};
     for (const r of rows) {
       if (!byCategory[r.category]) byCategory[r.category] = { income: 0, expense: 0 };
-      if (r.type === TransactionType.INCOME) byCategory[r.category].income  += Number(r.amount);
-      else                                   byCategory[r.category].expense += Number(r.amount);
+      if (r.type === TransactionType.INCOME) byCategory[r.category]!.income  += Number(r.amount);
+      else                                   byCategory[r.category]!.expense += Number(r.amount);
     }
 
     // Monthly trend (last 6 months)

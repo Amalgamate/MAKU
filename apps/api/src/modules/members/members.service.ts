@@ -73,7 +73,7 @@ export class MembersService {
       }
     }
 
-    return this.repo.findOne({ where: { id: saved.id }, relations: ['cigs'] }) ?? saved;
+    return (await this.repo.findOne({ where: { id: saved.id }, relations: ['cigs'] })) ?? saved;
   }
 
   // ─── Read ─────────────────────────────────────────────────────────────────

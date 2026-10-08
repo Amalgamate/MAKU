@@ -1,0 +1,36 @@
+{
+  "id": "FEAT-003",
+  "type": "feat",
+  "description": "Add missing edit/terminate UI for Staff, edit/deactivate UI for Suppliers, and replace raw UUID text inputs on CIG officer fields with a searchable member picker. All API endpoints already exist — this is purely frontend work. FEAT-003 is independent of FEAT-001 and FEAT-002 and can be implemented in parallel order if needed.",
+  "status": "pending",
+  "steps": [
+    "Update apps/web-app/src/modules/staff/services/staff.service.ts: add terminate method — async terminate(id: string, endDate: string): Promise<StaffMember> { const res = await apiClient.patch<ApiResponse<StaffMember>>(`/staff/${id}/terminate`, { endDate }); return res.data.data; }",
+
+    "Update apps/web-app/src/modules/staff/hooks/useStaff.ts: add useTerminateStaff hook — export function useTerminateStaff(id: string) { const qc = useQueryClient(); return useMutation({ mutationFn: (endDate: string) => staffService.terminate(id, endDate), onSuccess: () => { qc.invalidateQueries({ queryKey: keys.all }); toast.success('Staff member terminated'); }, onError: () => toast.error('Termination failed') }); }",
+
+    "Update apps/web-app/src/modules/staff/pages/StaffPage.tsx — add edit state and modal: 1. Add `import { Edit2 } from 'lucide-react'` to existing lucide imports. 2. Add `import { useUpdateStaff, useTerminateStaff } from '../hooks/useStaff'` (useUpdateStaff already exists in the hooks file). 3. Add state: `const [editingStaff, setEditingStaff] = useState<StaffMember | null>(null)`. 4. Add a useUpdateStaff and useTerminateStaff call inside the component, guarded: only call hooks once (use editingStaff?.id ?? '' as the id and check editingStaff before calling mutate). Pattern: `const updateMutation = useUpdateStaff(editingStaff?.id ?? ''); const terminateMutation = useTerminateStaff(editingStaff?.id ?? '')`. 5. Add an edit form schema (same fields: fullName required, role required, department, phone, email — all string). 6. Add a second useForm for the edit form (use 'editForm' prefix to distinguish from create form). 7. Add an Actions column header to the table header row. 8. Add an edit button cell to each table row: <button onClick={() => { setEditingStaff(s); editForm.reset({ fullName: s.fullName, role: s.role, department: s.department ?? '', phone: s.phone ?? '', email: s.email ?? '' }); }} className='rounded-lg p-1.5 text-gray-400 hover:bg-brand-50 hover:text-brand-700 transition-colors'><Edit2 size={14} /></button>. 9. Add the edit modal at bottom of component (same fixed overlay pattern as the create modal): title 'Edit Staff Member', fields fullName, role, department, phone, email. Footer: 'Save Changes' button (calls updateMutation.mutate with form values, onSuccess closes modal), 'Terminate' button with confirm pattern (state `confirmTerminate: boolean`; first click sets it, second click calls terminateMutation.mutate with current date), 'Cancel' button.",
+
+    "Update apps/web-app/src/modules/suppliers/hooks/useSuppliers.ts: add useDeactivateSupplier hook — export function useDeactivateSupplier(id: string) { const qc = useQueryClient(); return useMutation({ mutationFn: () => suppliersService.deactivate(id), onSuccess: () => { qc.invalidateQueries({ queryKey: keys.all }); toast.success('Supplier deactivated'); }, onError: () => toast.error('Deactivation failed') }); }",
+
+    "Update apps/web-app/src/modules/suppliers/pages/SuppliersPage.tsx — add edit state and modal: 1. Add `import { Edit2 } from 'lucide-react'` to existing imports. 2. Import `useUpdateSupplier, useDeactivateSupplier` from the hooks file. 3. Add state: `const [editingSupplier, setEditingSupplier] = useState<Supplier | null>(null)`. 4. Instantiate hooks: `const updateMutation = useUpdateSupplier(editingSupplier?.id ?? ''); const deactivateMutation = useDeactivateSupplier(editingSupplier?.id ?? '')`. 5. Add edit form schema: name (required), contactName, phone, email (optional email), category, physicalAddress. 6. Add a second useForm for the edit form. 7. Add an Edit button to each supplier Card (top-right, small, pencil icon): onClick sets editingSupplier and resets edit form with supplier's current values. 8. Add the edit modal: title 'Edit Supplier', fields matching edit schema, footer with 'Save Changes' (calls updateMutation), 'Deactivate' with confirm (calls deactivateMutation), 'Cancel'. Close modal on mutation success.",
+
+    "Update apps/web-app/src/modules/cigs/pages/CigDetailPage.tsx — replace UUID text inputs with member picker: 1. Add `import { useMemberList } from '../../members/hooks/useMembers'` — MemberStatus is already imported. 2. Add state `const [officerSearch, setOfficerSearch] = useState('')`. 3. Add query `const { data: officerMembersData } = useMemberList({ search: officerSearch || undefined, status: MemberStatus.ACTIVE, page: 1, perPage: 50 })` — only enabled when `editing` is true to avoid unnecessary calls. Use `enabled: editing`. 4. Replace the three Input components for chairpersonMemberId, secretaryMemberId, treasurerMemberId with a reusable inline pattern: a search input + <select> combo. For each officer field, render: a shared <input type='search' placeholder='Search member…' value={officerSearch} onChange={(e) => setOfficerSearch(e.target.value)} className='...' /> (one shared search box for all three pickers), then for each officer: <select {...register('chairpersonMemberId')} size={4} className='w-full rounded-lg border border-gray-300 px-3 py-2 text-sm'><option value=''>— none —</option>{(officerMembersData?.data ?? []).map((m) => <option key={m.id} value={m.id}>{m.memberNumber ?? 'PENDING'} — {m.fullName}</option>)}</select>. 5. Keep the existing error display for each field. 6. Remove the 'Enter the member UUIDs' hint text and replace with 'Search and select a member'.",
+
+    "Run pnpm typecheck:app to verify zero TypeScript errors."
+  ],
+  "acceptance_criteria": [
+    "pnpm typecheck:app exits 0",
+    "StaffPage.tsx renders an edit button on each staff row that opens a modal pre-filled with staff data",
+    "StaffPage.tsx modal has a Terminate button with two-click confirmation",
+    "useTerminateStaff hook exported from useStaff.ts",
+    "SuppliersPage.tsx renders an Edit button on each supplier card that opens a modal",
+    "SuppliersPage.tsx modal has a Deactivate button with confirmation",
+    "useDeactivateSupplier hook exported from useSuppliers.ts",
+    "CigDetailPage.tsx officer fields show a member dropdown (not raw UUID text inputs) when editing"
+  ],
+  "verification": [
+    "cd 'c:\\Amalgamate\\Projects\\Trends CORE Apps\\MAKU' && pnpm typecheck:app"
+  ],
+  "blocked_reason": null,
+  "findings": ""
+}

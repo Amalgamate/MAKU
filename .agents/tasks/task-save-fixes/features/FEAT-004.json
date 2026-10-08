@@ -1,0 +1,34 @@
+{
+  "id": "FEAT-004",
+  "type": "fix",
+  "description": "Fix three minor display/type bugs: audit page total count (data?.total → data?.meta?.total), UsersAdminService response type annotation, and update DocumentsPage to use the new standalone /documents endpoint created in FEAT-001. FEAT-004 depends on FEAT-001 for the documents endpoint.",
+  "status": "pending",
+  "steps": [
+    "Update apps/web-app/src/modules/audit/pages/AuditPage.tsx: 1. Change the apiClient.get type annotation in useAuditLogs from `{ data: { data: AuditEntry[]; total: number }; message: string }` to `{ data: { data: AuditEntry[]; meta: { page: number; perPage: number; total: number; totalPages: number } }; message: string }`. 2. Change the query return to `return res.data.data` (no change — this already returns the `{ data: AuditEntry[], meta: {...} }` object). 3. In the component body, `const logs = data?.data ?? []` is already correct. 4. Fix the total count display: change `data?.total` to `data?.meta?.total` in the paragraph text that reads `${data.total.toLocaleString()} entries`. The full corrected line: `{data?.meta?.total ? ` ${data.meta.total.toLocaleString()} entries.` : ''}`.",
+
+    "Update apps/web-app/src/modules/settings/services/users.service.ts: remove the `message` field from UsersListResponse interface (it belongs to the outer wrapper, not the unwrapped data). The corrected interface: `export interface UsersListResponse { data: UserProfile[]; meta: { page: number; perPage: number; total: number; totalPages: number }; }`. The list() method signature and implementation do not change — it already calls `apiClient.get<{ data: UsersListResponse; message: string }>` and returns `res.data.data` which is the inner UsersListResponse.",
+
+    "Update apps/web-app/src/modules/documents/pages/DocumentsPage.tsx: 1. Replace the useDocuments hook with a direct /documents call. New hook: `function useDocuments(category?: string) { return useQuery({ queryKey: ['documents', 'all', category], queryFn: async () => { const p = new URLSearchParams(); if (category) p.set('category', category); const res = await apiClient.get<{ data: { data: (DocumentItem & { cigName?: string })[]; meta: { total: number } }; message: string }>(`/documents?${p}`); return res.data.data; }, staleTime: 1000 * 60 * 2 }); }`. 2. Remove the cigs N+1 loop entirely. 3. Update the component: `const { data: docResult, isLoading } = useDocuments(categoryFilter || undefined)`. Access documents as `docResult?.data ?? []`. 4. Update uploadMutation to POST to `/documents` instead of `/cigs/${selectedCigId}/documents`: change the mutationFn to `apiClient.post('/documents', form, { headers: { 'Content-Type': 'multipart/form-data' } })` where form includes the optional cigId field. 5. Change the CIG selector label from 'Attach to CIG' (required) to 'Attach to CIG (optional)' and remove the required validation — `disabled` prop on the Upload button becomes `disabled={!selectedFile}` only. 6. Keep the cigsData query and the CIG select dropdown but make it optional (`<option value=''>None — org-level document</option>`). When selectedCigId is set, append `form.append('cigId', selectedCigId)`. 7. Invalidate `['documents', 'all']` on upload success. 8. Remove the `useQuery(['cigs-list-for-docs'])` import alias if it's no longer needed or keep it for the optional CIG picker — keep it as optional.",
+
+    "Run pnpm typecheck:app to verify zero TypeScript errors.",
+
+    "Run pnpm typecheck:api to verify the full API still compiles (regression check after all FEATs).",
+
+    "Run pnpm build:all as a final build verification — all three apps must build without errors."
+  ],
+  "acceptance_criteria": [
+    "pnpm typecheck:app exits 0",
+    "pnpm typecheck:api exits 0",
+    "pnpm build:all exits 0",
+    "AuditPage.tsx useAuditLogs type annotation references meta.total, not top-level total",
+    "AuditPage.tsx displays entry count using data?.meta?.total",
+    "UsersListResponse interface does not have a message field",
+    "DocumentsPage.tsx useDocuments calls GET /documents (not N+1 per CIG)",
+    "DocumentsPage.tsx Upload button is enabled when a file is selected even if no CIG is chosen"
+  ],
+  "verification": [
+    "cd 'c:\\Amalgamate\\Projects\\Trends CORE Apps\\MAKU' && pnpm typecheck:api && pnpm typecheck:app && pnpm build:all"
+  ],
+  "blocked_reason": null,
+  "findings": ""
+}

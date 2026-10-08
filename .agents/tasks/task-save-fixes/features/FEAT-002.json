@@ -1,0 +1,43 @@
+{
+  "id": "FEAT-002",
+  "type": "feat",
+  "description": "Create the org settings persistence API module and wire it to the frontend so that organisation name, tagline, logo, and colour are stored in the database rather than only in localStorage. Website logo on the public site flows through automatically once the org store is hydrated from the API.",
+  "status": "pending",
+  "steps": [
+    "Create apps/api/src/modules/settings/org-settings.entity.ts: @Entity('org_settings') class OrgSettings with fields: id (varchar(5) PK, default '1' — use @PrimaryColumn({ type: 'varchar', length: 5 }) and set id='1' in service), orgName (varchar 200 default 'MAKU'), tagline (varchar 500 nullable), logoUrl (varchar 1000 nullable — needs to hold base64 data URLs which can be long), primaryColor (varchar 20 default '#7e2710'), updatedAt (@UpdateDateColumn timestamptz).",
+
+    "Create apps/api/src/modules/settings/settings.service.ts: @Injectable() SettingsService with @InjectRepository(OrgSettings). Method getOrgSettings(): repo.findOne({ where: { id: '1' } }); if null, create default row with id='1' and save, then return. Method updateOrgSettings(dto: Partial<OrgSettingsDto>): call getOrgSettings() to get or create row, Object.assign(existing, dto), save. Return updated entity.",
+
+    "Create apps/api/src/modules/settings/dto/org-settings.dto.ts: class UpdateOrgSettingsDto with @IsOptional() @IsString() orgName, @IsOptional() @IsString() tagline, @IsOptional() @IsString() logoUrl, @IsOptional() @IsString() primaryColor.",
+
+    "Create apps/api/src/modules/settings/settings.controller.ts: @Controller('settings') @ApiTags('Settings') controller. GET /settings/org: @Public() @Get('org') — calls service.getOrgSettings(). PATCH /settings/org: @ApiBearerAuth() @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN) @Patch('org') — calls service.updateOrgSettings(dto). Import @Public from '../../shared/decorators/public.decorator', @Roles from '../../shared/decorators/roles.decorator', UserRole from '@maku/shared-types'.",
+
+    "Create apps/api/src/modules/settings/settings.module.ts: @Module({ imports: [TypeOrmModule.forFeature([OrgSettings])], providers: [SettingsService], controllers: [SettingsController], exports: [SettingsService] }).",
+
+    "Update apps/api/src/app.module.ts: add import for SettingsModule from './modules/settings/settings.module' and add SettingsModule to the imports array after WebsiteModule. (Note: if FEAT-001 has already added FeedlotModule, CommunicationsModule, DocumentsModule to app.module.ts, only add SettingsModule here.)",
+
+    "Create apps/web-app/src/modules/settings/hooks/useOrgSettings.ts: define interface OrgSettings { orgName: string; tagline: string | null; logoUrl: string | null; primaryColor: string }. Export useOrgSettings() = useQuery({ queryKey: ['org-settings'], queryFn: async () => { const res = await apiClient.get<{ data: OrgSettings; message: string }>('/settings/org'); return res.data.data; }, staleTime: 1000 * 60 * 10 }). Export useUpdateOrgSettings() = useMutation({ mutationFn: (data: Partial<OrgSettings>) => apiClient.patch('/settings/org', data), onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['org-settings'] }); toast.success('Settings saved'); }, onError: () => toast.error('Failed to save settings') }).",
+
+    "Update apps/web-app/src/modules/settings/store/org.store.ts: add a hydrate action to the OrgSettings interface — hydrate: (s: { name?: string; tagline?: string; logoUrl?: string | null; primaryColor?: string }) => void. Implement it in the persist factory: hydrate: (s) => set({ name: s.name ?? 'MAKU', tagline: s.tagline ?? '', logoUrl: s.logoUrl ?? null, primaryColor: s.primaryColor ?? '#7e2710' }). This lets the app shell call org.hydrate(apiData) on startup.",
+
+    "Update apps/web-app/src/modules/settings/pages/SystemSettingsPage.tsx: 1. Import useOrgSettings, useUpdateOrgSettings from '../hooks/useOrgSettings'. 2. Call useOrgSettings() at top of component; use its data to set form defaultValues via useForm's reset() in a useEffect when data loads (only on first load, not on every render — use a ref flag). 3. In onSave(values): call org.setName/setTagline (existing Zustand update for immediate sidebar refresh) AND call updateOrgSettings.mutate({ orgName: values.name, tagline: values.tagline, logoUrl: logoPreview, primaryColor: org.primaryColor }). 4. In handleLogoFile: after org.setLogoUrl(url), also call updateOrgSettings.mutate({ logoUrl: url }). 5. In removeLogo: also call updateOrgSettings.mutate({ logoUrl: null }). 6. Show isPending state from updateOrgSettings.isPending on the save button.",
+
+    "Find the app shell / root layout component in apps/web-app/src/ that wraps authenticated routes (likely AppShell or similar in apps/web-app/src/app/ or src/shared/layout/). Read the file first. Add useOrgSettings() call there; in a useEffect when data is defined, call org.hydrate({ name: data.orgName, tagline: data.tagline ?? '', logoUrl: data.logoUrl, primaryColor: data.primaryColor }). This ensures sidebar org name, logo, and colour reflect the database on every session.",
+
+    "Run pnpm typecheck:api && pnpm typecheck:app to verify both compile without errors."
+  ],
+  "acceptance_criteria": [
+    "pnpm typecheck:api exits 0",
+    "pnpm typecheck:app exits 0",
+    "apps/api/src/modules/settings/ contains org-settings.entity.ts, settings.service.ts, settings.controller.ts, settings.module.ts, dto/org-settings.dto.ts",
+    "SettingsModule is listed in app.module.ts imports array",
+    "SystemSettingsPage.tsx calls useUpdateOrgSettings mutation on save — not just Zustand",
+    "org.store.ts has a hydrate() action",
+    "App shell hydrates org store from API on load"
+  ],
+  "verification": [
+    "cd 'c:\\Amalgamate\\Projects\\Trends CORE Apps\\MAKU' && pnpm typecheck:api && pnpm typecheck:app"
+  ],
+  "blocked_reason": null,
+  "findings": ""
+}

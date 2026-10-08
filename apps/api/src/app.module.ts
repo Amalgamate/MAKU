@@ -23,6 +23,11 @@ import { WebsiteModule } from './modules/website/website.module';
 import { DashboardModule } from './modules/dashboard/dashboard.module';
 import { AuditModule } from './modules/audit/audit.module';
 import { HealthModule } from './modules/health/health.module';
+import { FeedlotModule } from './modules/feedlot/feedlot.module';
+import { CommunicationsModule } from './modules/communications/communications.module';
+import { DocumentsModule } from './modules/documents/documents.module';
+// SettingsModule imported here; implementation added in FEAT-002
+import { SettingsModule } from './modules/settings/settings.module';
 
 @Module({
   imports: [
@@ -59,12 +64,14 @@ import { HealthModule } from './modules/health/health.module';
     MembersModule,
     CigsModule,
     LivestockModule,
+    FeedlotModule,
     WaterVouchersModule,
     FinanceModule,
     SuppliersModule,
     PurchasesModule,
     ProcurementModule,
     StaffModule,
+    DocumentsModule,
     CommoditiesModule,
     NgosModule,
     GrantsModule,
@@ -72,7 +79,9 @@ import { HealthModule } from './modules/health/health.module';
     WebsiteModule,
     DashboardModule,
     AuditModule,
+    CommunicationsModule,
     HealthModule,
+    SettingsModule,
   ],
 })
 export class AppModule {}

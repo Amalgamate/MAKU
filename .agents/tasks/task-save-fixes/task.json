@@ -1,0 +1,7 @@
+{
+  "task_id": "task-save-fixes",
+  "task_description": "Fix 10 broken/missing save flows across the MAKU NestJS + React monorepo: build 3 missing API modules (feedlot, communications, documents), add org settings persistence, add staff/supplier edit UIs, fix CIG officer picker, fix audit total count, and fix UsersAdminService type.",
+  "status": "pending",
+  "feature_order": ["FEAT-001", "FEAT-002", "FEAT-003", "FEAT-004"],
+  "blocked_reason": null
+}

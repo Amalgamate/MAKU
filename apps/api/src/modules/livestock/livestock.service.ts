@@ -86,9 +86,9 @@ export class LivestockService {
       totalProceeds  += Number(r.memberProceeds);
 
       if (!bySpecies[r.species]) bySpecies[r.species] = { count: 0, animals: 0, value: 0 };
-      bySpecies[r.species].count++;
-      bySpecies[r.species].animals += r.quantity;
-      bySpecies[r.species].value   += Number(r.totalAmount);
+      bySpecies[r.species]!.count++;
+      bySpecies[r.species]!.animals += r.quantity;
+      bySpecies[r.species]!.value   += Number(r.totalAmount);
     }
 
     return {

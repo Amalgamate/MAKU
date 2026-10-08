@@ -1,0 +1,53 @@
+{
+  "id": "FEAT-001",
+  "type": "feat",
+  "description": "Create three missing NestJS API modules — feedlot, communications, and documents — that the frontend already calls but which return 404. Register all three in app.module.ts.",
+  "status": "completed",
+  "steps": [
+    "Create apps/api/src/modules/feedlot/feedlot.entity.ts: @Entity('feedlot_animals') class FeedlotAnimal with fields: id (uuid PK), animalTag (varchar 50), species (varchar 50 default 'cattle'), memberId (uuid nullable), intakeDate (date), intakeWeightKg (decimal 10,2), currentWeightKg (decimal 10,2 nullable), dailyFeedCostKes (decimal 10,2 default 0), status (enum 'active'|'sold'|'died' default 'active'), saleDate (date nullable), salePriceKes (decimal 12,2 nullable), notes (text nullable), createdAt, updatedAt. Use @CreateDateColumn/@UpdateDateColumn pattern from livestock-transaction.entity.ts.",
+
+    "Create apps/api/src/modules/feedlot/dto/create-feedlot.dto.ts: class CreateFeedlotDto with @IsString() animalTag, @IsString() species, @IsOptional() @IsUUID() memberId, @IsISO8601() intakeDate, @Type(()=>Number) @IsNumber() intakeWeightKg, @IsOptional() @Type(()=>Number) @IsNumber() dailyFeedCostKes, @IsOptional() @IsString() notes. Also class UpdateFeedlotDto with @IsOptional() @Type(()=>Number) @IsNumber() currentWeightKg, @IsOptional() @IsEnum(['active','sold','died']) status, @IsOptional() @IsISO8601() saleDate, @IsOptional() @Type(()=>Number) @IsNumber() salePriceKes.",
+
+    "Create apps/api/src/modules/feedlot/feedlot.service.ts: @Injectable() FeedlotService with @InjectRepository(FeedlotAnimal). Methods: findAll(filters?: { status?:string; memberId?:string }) returns Promise<FeedlotAnimal[]> using createQueryBuilder with optional where clauses, orderBy intakeDate DESC; create(dto: CreateFeedlotDto) returns saved entity; update(id: string, dto: UpdateFeedlotDto) finds by id (throw NotFoundException if not found), Object.assign, save and return.",
+
+    "Create apps/api/src/modules/feedlot/feedlot.controller.ts: @Controller('feedlot') @ApiTags('Feedlot') @ApiBearerAuth(). GET /feedlot (no extra roles — any auth): returns array mapped via service. POST /feedlot @Roles(SUPER_ADMIN,ADMIN,FIELD_OFFICER): calls service.create(dto). PATCH /feedlot/:id @Roles(SUPER_ADMIN,ADMIN,FIELD_OFFICER): calls service.update(id, dto). Mirror livestock.controller.ts pattern exactly.",
+
+    "Create apps/api/src/modules/feedlot/feedlot.module.ts: @Module({ imports: [TypeOrmModule.forFeature([FeedlotAnimal])], providers: [FeedlotService], controllers: [FeedlotController], exports: [FeedlotService] }). Mirror livestock.module.ts exactly.",
+
+    "Create apps/api/src/modules/communications/sms-log.entity.ts: @Entity('sms_logs') class SmsLog with fields: id (uuid PK), recipient (varchar 20 nullable), message (text), status (enum 'sent'|'failed'|'pending' default 'pending'), sentAt (timestamptz nullable), sentBy (uuid nullable), memberCount (int nullable), errorMessage (varchar 500 nullable), createdAt (@CreateDateColumn).",
+
+    "Create apps/api/src/modules/communications/dto/send-sms.dto.ts: class SendSmsDto with @IsString() @MinLength(1) message, @IsOptional() @IsString() recipient (phone or group label like 'all_active'), @IsOptional() @Type(()=>Number) @IsInt() memberCount.",
+
+    "Create apps/api/src/modules/communications/communications.service.ts: @Injectable() CommunicationsService with @InjectRepository(SmsLog). Method sendSms(dto: SendSmsDto, userId: string): creates log entry with status 'pending', attempts dynamic import of africastalking — if env vars AT_API_KEY and AT_USERNAME are set tries to send, catches all errors and sets status to 'failed' with errorMessage, sets status to 'sent' on success, sets sentAt to new Date(), saves and returns log entry. Never throws. Method getLogs(): returns repo.find({ order: { createdAt: 'DESC' }, take: 100 }).",
+
+    "Create apps/api/src/modules/communications/communications.controller.ts: @Controller('communications') @ApiTags('Communications') @ApiBearerAuth(). POST /communications/sms @Roles(SUPER_ADMIN,ADMIN,FIELD_OFFICER): @CurrentUser() caller, calls service.sendSms(dto, caller.sub). GET /communications/sms @Roles(SUPER_ADMIN,ADMIN): calls service.getLogs().",
+
+    "Create apps/api/src/modules/communications/communications.module.ts: @Module({ imports: [TypeOrmModule.forFeature([SmsLog])], providers: [CommunicationsService], controllers: [CommunicationsController] }). Mirror audit.module.ts.",
+
+    "Create apps/api/src/modules/documents/document.entity.ts: @Entity('documents') class Document with fields: id (uuid PK), title (varchar 255), category (varchar 50 default 'other'), fileUrl (varchar 500), fileSize (int nullable), mimeType (varchar 100 nullable), year (int nullable), description (text nullable), uploadedBy (uuid nullable), cigId (uuid nullable @Index), createdAt, updatedAt.",
+
+    "Create apps/api/src/modules/documents/dto/create-document.dto.ts: class CreateDocumentDto with @IsString() title, @IsOptional() @IsString() category, @IsString() fileUrl, @IsOptional() @IsInt() fileSize, @IsOptional() @IsString() mimeType, @IsOptional() @IsInt() year, @IsOptional() @IsString() description, @IsOptional() @IsUUID() cigId.",
+
+    "Create apps/api/src/modules/documents/documents.service.ts: @Injectable() DocumentsService with @InjectRepository(Document). findAll(filters: { category?:string; cigId?:string; page?:number; perPage?:number }) returns { data: Document[], total: number } via createQueryBuilder with optional where clauses, skip/take pagination. create(dto, userId) returns saved entity.",
+
+    "Create apps/api/src/modules/documents/documents.controller.ts: @Controller('documents') @ApiTags('Documents') @ApiBearerAuth(). GET /documents (authenticated, no extra role): @Query params category, cigId, page, perPage — calls service.findAll, returns { data, meta: { page, perPage, total, totalPages } }. POST /documents @Roles(SUPER_ADMIN,ADMIN,FIELD_OFFICER): @CurrentUser() caller, calls service.create(dto, caller.sub).",
+
+    "Create apps/api/src/modules/documents/documents.module.ts: @Module({ imports: [TypeOrmModule.forFeature([Document])], providers: [DocumentsService], controllers: [DocumentsController] }).",
+
+    "Update apps/api/src/app.module.ts: add imports for FeedlotModule (from './modules/feedlot/feedlot.module'), CommunicationsModule (from './modules/communications/communications.module'), DocumentsModule (from './modules/documents/documents.module'), SettingsModule (from './modules/settings/settings.module' — will be created in FEAT-002). Add all three new modules to the imports array: FeedlotModule after LivestockModule, DocumentsModule after StaffModule, CommunicationsModule after AuditModule. Leave SettingsModule slot ready with a comment if FEAT-002 is not yet done — actually add all four in this step since app.module.ts will only be touched once across all FEATs to avoid conflicts.",
+
+    "Run pnpm typecheck:api from the monorepo root to verify TypeScript compilation passes with zero errors."
+  ],
+  "acceptance_criteria": [
+    "pnpm typecheck:api exits with code 0 and no TypeScript errors",
+    "apps/api/src/modules/feedlot/ contains feedlot.entity.ts, feedlot.service.ts, feedlot.controller.ts, feedlot.module.ts, dto/create-feedlot.dto.ts",
+    "apps/api/src/modules/communications/ contains sms-log.entity.ts, communications.service.ts, communications.controller.ts, communications.module.ts, dto/send-sms.dto.ts",
+    "apps/api/src/modules/documents/ contains document.entity.ts, documents.service.ts, documents.controller.ts, documents.module.ts, dto/create-document.dto.ts",
+    "FeedlotModule, CommunicationsModule, DocumentsModule are imported and listed in app.module.ts imports array"
+  ],
+  "verification": [
+    "cd 'c:\\Amalgamate\\Projects\\Trends CORE Apps\\MAKU' && pnpm typecheck:api"
+  ],
+  "blocked_reason": null,
+  "findings": "1. tsconfig.json paths fix: apps/api/tsconfig.json had '@maku/shared-types' mapped to the .js file instead of .d.ts; fixed to point at dist/index.d.ts so TS7016 errors are resolved across the whole API. 2. Pre-existing TS2532 strict errors in finance.service.ts and livestock.service.ts (index-access on possibly-undefined) and TS2322 in members.service.ts (findOne returns null) were fixed with ! non-null assertions. 3. SettingsModule stub created at apps/api/src/modules/settings/settings.module.ts — FEAT-002 must replace this stub with the real implementation (entity, service, controller). The stub is already imported and registered in app.module.ts so FEAT-002 only needs to create the actual files."
+}
