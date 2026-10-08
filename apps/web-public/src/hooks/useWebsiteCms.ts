@@ -1,15 +1,31 @@
 import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
 
-const API = import.meta.env['VITE_API_URL'] ?? '/v1';
+const API = import.meta.env['VITE_API_URL'] ?? 'http://localhost:3000/v1';
 
 export interface CmsBlock { type: string; [key: string]: unknown; }
-export interface CmsPage { id: string; title: string; slug: string; isHomePage: boolean; isInNav: boolean; blocks: CmsBlock[]; seoTitle?: string; seoDescription?: string; }
+export interface CmsPage {
+  id: string; title: string; slug: string;
+  isHomePage: boolean; isInNav: boolean;
+  blocks: CmsBlock[]; seoTitle?: string; seoDescription?: string;
+}
+export interface CmsNavLink { label: string; url: string; openInNewTab?: boolean; }
+export interface CmsHeaderCta { label: string; url: string; style: 'primary' | 'outline'; }
+
 export interface CmsSettings {
-  id: string; siteName: string; tagline: string | null; logoUrl: string | null;
-  headerLogoUrl: string | null; footerLogoUrl: string | null;
-  primaryColor: string; navLinks: Array<{ label: string; url: string }>;
-  pages: CmsPage[]; footerText: string | null;
+  id: string;
+  siteName: string;
+  tagline: string | null;
+  logoUrl: string | null;
+  headerLogoUrl: string | null;
+  footerLogoUrl: string | null;
+  primaryColor: string;
+  logoPosition: 'left' | 'center' | 'right';
+  navPosition: 'left' | 'center' | 'right';
+  navLinks: CmsNavLink[];
+  headerCtas: CmsHeaderCta[];
+  pages: CmsPage[];
+  footerText: string | null;
   socialLinks: { facebook?: string; twitter?: string; whatsapp?: string };
   isPublished: boolean;
 }
@@ -19,24 +35,25 @@ interface OrgSettings {
 }
 
 async function fetchSettings(): Promise<CmsSettings> {
-  // Fetch both in parallel; org settings provides the logo fallback
   const [websiteRes, orgRes] = await Promise.allSettled([
     axios.get<{ data: CmsSettings }>(`${API}/website/settings`),
     axios.get<{ data: OrgSettings }>(`${API}/settings/org`),
   ]);
 
-  if (websiteRes.status === 'rejected') {
-    throw new Error('Failed to load website settings');
-  }
+  if (websiteRes.status === 'rejected') throw new Error('Failed to load website settings');
 
   const website = websiteRes.value.data.data;
   const org = orgRes.status === 'fulfilled' ? orgRes.value.data.data : null;
 
-  // If website_settings has no logo, fall back to org_settings logo
   return {
     ...website,
+    logoPosition: website.logoPosition ?? 'left',
+    navPosition: website.navPosition ?? 'center',
+    headerCtas: website.headerCtas ?? [],
+    // Fall back to org settings logo when website hasn't set one
+    headerLogoUrl: website.headerLogoUrl ?? website.logoUrl ?? org?.logoUrl ?? null,
+    footerLogoUrl: website.footerLogoUrl ?? website.logoUrl ?? org?.logoUrl ?? null,
     logoUrl: website.logoUrl ?? org?.logoUrl ?? null,
-    // Also sync siteName/tagline from org if website hasn't overridden them
     siteName: website.siteName || org?.orgName || 'MAKU',
   };
 }

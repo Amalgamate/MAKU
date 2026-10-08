@@ -98,7 +98,19 @@ export class WebsiteSettings {
   primaryColor!: string;
 
   @Column({ name: 'nav_links', type: 'jsonb', default: '[]' })
-  navLinks!: Array<{ label: string; url: string }>;
+  navLinks!: Array<{ label: string; url: string; openInNewTab?: boolean }>;
+
+  /** 'left' | 'center' | 'right' — where the logo sits in the header */
+  @Column({ name: 'logo_position', type: 'varchar', length: 20, default: 'left' })
+  logoPosition!: 'left' | 'center' | 'right';
+
+  /** 'left' | 'center' | 'right' — where the nav links sit in the header */
+  @Column({ name: 'nav_position', type: 'varchar', length: 20, default: 'center' })
+  navPosition!: 'left' | 'center' | 'right';
+
+  /** CTA buttons shown in the header (label + url + style) */
+  @Column({ name: 'header_ctas', type: 'jsonb', default: '[]' })
+  headerCtas!: Array<{ label: string; url: string; style: 'primary' | 'outline' }>;
 
   @Column({ type: 'jsonb', default: '[]' })
   pages!: WebsitePage[];

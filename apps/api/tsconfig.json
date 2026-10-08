@@ -9,7 +9,7 @@
     "outDir": "dist",
     "baseUrl": ".",
     "paths": {
-      "@maku/shared-types": ["../../packages/shared-types/dist/index.js"]
+      "@maku/shared-types": ["../../packages/shared-types/dist/index.d.ts"]
     },
     "emitDecoratorMetadata": true,
     "experimentalDecorators": true,

@@ -10,7 +10,10 @@ export interface WebsiteSettingsData {
   headerLogoUrl: string | null;
   footerLogoUrl: string | null;
   primaryColor: string;
-  navLinks: Array<{ label: string; url: string }>;
+  navLinks: Array<{ label: string; url: string; openInNewTab?: boolean }>;
+  logoPosition: 'left' | 'center' | 'right';
+  navPosition: 'left' | 'center' | 'right';
+  headerCtas: Array<{ label: string; url: string; style: 'primary' | 'outline' }>;
   pages: WebsitePageData[];
   footerText: string | null;
   socialLinks: { facebook?: string; twitter?: string; whatsapp?: string; youtube?: string };
