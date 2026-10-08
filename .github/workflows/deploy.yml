@@ -84,6 +84,9 @@ jobs:
       - name: Reclaim space from unused older images
         run: ssh maku-production 'sudo docker image prune --all --force --filter until=48h'
 
+      - name: Report production storage usage
+        run: ssh maku-production 'df -h /; sudo docker system df; sudo du -xhd1 /var/lib/docker /var/log /home/deploy 2>/dev/null | sort -h | tail -20'
+
       - name: Transfer production API image
         run: docker save maku-api:latest | gzip -1 | ssh maku-production 'gzip -dc | sudo docker load'
 
