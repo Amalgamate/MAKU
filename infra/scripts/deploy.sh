@@ -22,7 +22,15 @@ sudo rsync -a --delete --chown=root:root --chmod=Du=rwx,Dgo=rx,Fu=rw,Fgo=r \
 
 available_mb=$(df -Pm / | awk 'NR==2 {print $4}')
 if (( available_mb < 200 )); then
-  echo "ERROR: only ${available_mb} MB free; refusing deployment below 200 MB." >&2
+  echo "==> Low disk (${available_mb} MB free) — pruning Docker build cache and dangling images"
+  sudo docker system prune -f --filter "until=24h" || true
+  sudo docker image prune -f || true
+  available_mb=$(df -Pm / | awk 'NR==2 {print $4}')
+  echo "==> Disk after prune: ${available_mb} MB free"
+fi
+
+if (( available_mb < 100 )); then
+  echo "ERROR: only ${available_mb} MB free after prune; refusing deployment below 100 MB." >&2
   exit 1
 fi
 
@@ -41,6 +49,8 @@ for attempt in $(seq 1 40); do
 done
 
 echo '==> Building API image'
+# Prune dangling images/build cache to free space before the build
+sudo docker image prune -f --filter "until=24h" || true
 "${COMPOSE[@]}" build api
 if ! sudo test -f "$SCHEMA_MARKER"; then
   echo '==> Creating initial MAKU database schema'
