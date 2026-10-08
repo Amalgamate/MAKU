@@ -9,6 +9,8 @@ COPY packages/shared-types/package.json ./packages/shared-types/
 COPY packages/utils/package.json ./packages/utils/
 COPY packages/ui/package.json ./packages/ui/
 COPY apps/api/package.json ./apps/api/
+COPY apps/web-app/package.json ./apps/web-app/
+COPY apps/web-public/package.json ./apps/web-public/
 
 # Install all dependencies
 RUN pnpm install --frozen-lockfile
@@ -39,6 +41,8 @@ COPY packages/shared-types/package.json ./packages/shared-types/
 COPY packages/utils/package.json ./packages/utils/
 COPY packages/ui/package.json ./packages/ui/
 COPY apps/api/package.json ./apps/api/
+COPY apps/web-app/package.json ./apps/web-app/
+COPY apps/web-public/package.json ./apps/web-public/
 
 # Production deps only
 RUN pnpm install --frozen-lockfile --prod
