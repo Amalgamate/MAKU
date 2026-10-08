@@ -6,8 +6,8 @@
     "module": "ESNext",
     "moduleResolution": "bundler",
     "jsx": "react-jsx",
+    "rootDir": "../..",
     "outDir": "dist",
-    "baseUrl": ".",
     "types": ["react", "react-dom", "vite/client"],
     "paths": {
       "@/*": ["./src/*"],

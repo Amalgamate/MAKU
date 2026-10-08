@@ -6,8 +6,8 @@
     "module": "ESNext",
     "moduleResolution": "bundler",
     "jsx": "react-jsx",
+    "rootDir": "../..",
     "outDir": "dist",
-    "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"],
       "@maku/shared-types": ["../../packages/shared-types/src/index.ts"],
